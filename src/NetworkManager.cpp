@@ -165,9 +165,20 @@ bool NetworkManager::initPetKitApi()
 
     if (user == "" || pass == "")
         return false;
-
-    _petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str(), LED_PIN);
-    return _petkit->login();
+    if(_ispetkit)
+    {
+         _petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str());
+         _litterbox = _petkit;
+    }
+    else 
+    {
+        _whisker = new WhiskerApi(user.c_str(), pass.c_str(), tz.c_str());
+        _litterbox = _whisker;
+    }
+    
+    //_petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str(), LED_PIN);
+    
+    return _litterbox->login();
 }
 
 bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)

@@ -10,7 +10,7 @@
 // but for these structs we usually need the definitions.
 
 // Define the structure for our data map: PetID -> Timestamp -> Record
-typedef std::map<int, std::map<time_t, LitterboxRecord>> PetDataMap;
+typedef std::map<int, std::map<time_t, SL_Record>> PetDataMap;
 
 enum DateRangeEnum {
   LAST_7_DAYS,

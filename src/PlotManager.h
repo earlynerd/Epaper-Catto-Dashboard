@@ -10,7 +10,7 @@ class PlotManager {
 public:
     PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display);
     
-    void renderDashboard(const std::vector<Pet> &pets, 
+    void renderDashboard(const std::vector<SL_Pet> &pets, 
                          PetDataMap &allPetData, 
                          const DateRangeInfo &range,
                          const StatusRecord &status,

@@ -19,7 +19,7 @@ NetworkManager *networkManager;
 PlotManager *plotManager;
 
 PetDataMap allPetData;
-std::vector<Pet> allPets;
+std::vector<SL_Pet> allPets;
 
 DateRangeInfo dateRangeInfo[] = {
     {LAST_7_DAYS, "Last 7 Days", 7 * 86400L},
@@ -157,7 +157,7 @@ void setup()
     
     if (networkManager->initPetKitApi())
     {
-      //networkManager->getApi()->setDebug(true);
+      networkManager->getApi()->setDebug(true);
       // Calculate how many days we are missing
       int daysToFetch = 30; // Default max
 
@@ -176,21 +176,21 @@ void setup()
 
       if (networkManager->getApi()->fetchAllData(daysToFetch))
       {
-        allPets = networkManager->getApi()->getPets();
-
+        allPets = networkManager->getApi()->getUnifiedPets();
+        
         // Store pets to NVS
         if (!allPets.empty())
         {
-          preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(Pet));
+          preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
         }
         // Merge data
         for (const auto &pet : allPets)
         {
-          auto records = networkManager->getApi()->getLitterboxRecordsByPetId(pet.id);
-          dataManager.mergeData(allPetData, pet.id, records);
+          auto records = networkManager->getApi()->getUnifiedRecords();
+          dataManager.mergeData(allPetData, pet.id.toInt(), records);
         }
         dataManager.saveData(allPetData);
-        status = networkManager->getApi()->getLatestStatus();
+        //status = networkManager->getApi()->getLatestStatus();
         if (status.device_name.length() > 0)
         {
           dataManager.saveStatus(status);

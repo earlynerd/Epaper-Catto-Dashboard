@@ -29,7 +29,7 @@ public:
     StatusRecord getStatus();
 
     // Merge new records from API into the main map
-    void mergeData(PetDataMap &mainData, int petId, const std::vector<LitterboxRecord> &newRecords);
+    void mergeData(PetDataMap &mainData, int PetId, const std::vector<SL_Record> &newRecords);
 
     // Helper to find the most recent timestamp in the existing data
     time_t getLatestTimestamp(const PetDataMap &petData);

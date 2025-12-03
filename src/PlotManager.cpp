@@ -3,7 +3,7 @@
 PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp)
     : _display(disp) {}
 
-void PlotManager::renderDashboard(const std::vector<Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const StatusRecord &status, bool wifiSuccess, float temp, float humidity)
+void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const StatusRecord &status, bool wifiSuccess, float temp, float humidity)
 {
     _display->fillScreen(GxEPD_WHITE);
 
@@ -19,24 +19,24 @@ void PlotManager::renderDashboard(const std::vector<Pet> &pets, PetDataMap &allP
     int idx = 0;
     for (const auto &pet : pets)
     {
-        if (allPetData.find(pet.id) == allPetData.end())
+        if (allPetData.find(pet.id.toInt()) == allPetData.end())
         {
             idx++;
             continue;
         }
 
         time_t lastTimestamp = -1;
-        for (auto const &recordPair : allPetData[pet.id])
+        for (auto const &recordPair : allPetData[pet.id.toInt()])
         {
-            const LitterboxRecord &record = recordPair.second;
+            const SL_Record &record = recordPair.second;
             if (record.timestamp < timeStart)
                 continue;
 
-            float weight_lbs = (float)record.weight_grams / GRAMS_PER_POUND;
+            float weight_lbs = (float)record.weight_lbs;
             struct tm* thistimestamp = localtime(&record.timestamp);
             time_t ts = mktime(thistimestamp);
             pet_scatterplot[idx].push_back({(float)ts, weight_lbs});
-            duration_hist[idx].push_back((float)record.duration_seconds / 60.0);
+            if(record.duration_seconds > 0.0) duration_hist[idx].push_back((float)record.duration_seconds / 60.0);
 
             if (lastTimestamp > 0)
                 interval_hist[idx].push_back(((float)(record.timestamp - lastTimestamp)) / 3600.0);
@@ -52,19 +52,19 @@ void PlotManager::renderDashboard(const std::vector<Pet> &pets, PetDataMap &allP
     histInterval.setBinCount(16);
     histInterval.setNormalization(true);
 
-    Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
-    histDuration.setTitle("Duration (Minutes)");
-    histDuration.setBinCount(16);
-    histDuration.setNormalization(true);
+    //Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
+    //histDuration.setTitle("Duration (Minutes)");
+    //histDuration.setBinCount(16);
+    //histDuration.setNormalization(true);
 
     for (int i = 0; i < numPets; ++i)
     {
         histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
-        histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+        //histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
     }
 
     histInterval.plot();
-    histDuration.plot();
+   // histDuration.plot();
 
     // --- Draw ScatterPlot ---
     ScatterPlot plot(_display, 0, 0, EPD_WIDTH, EPD_HEIGHT * 3 / 4);

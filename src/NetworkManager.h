@@ -7,7 +7,9 @@
 #include <Preferences.h>
 #include <TzDbLookup.h>
 #include "WiFiProvisioner.h"
+#include "SmartLitterbox.h"
 #include "PetKitApi.h"
+#include "WhiskerApi.h"
 #include "config.h"
 #include "RTClib.h"
 #if (EPD_SELECT == 1002)
@@ -32,16 +34,19 @@ public:
     bool initPetKitApi();
     
     // Get the API client instance
-    PetKitApi* getApi() { return _petkit; }
+    SmartLitterbox* getApi() { return _litterbox; }
     
     // Clear credentials
     void factoryReset();
 
 private:
     Preferences& _prefs;
+    WhiskerApi* _whisker = nullptr;
     PetKitApi* _petkit = nullptr;
+    SmartLitterbox* _litterbox = nullptr;
+    //PetKitApi* _petkit = nullptr;
     char _time_zone[64];
-    
+    bool _ispetkit = false;
     bool getTimezoneAndSync(RTC_PCF8563& rtc);
 };
 

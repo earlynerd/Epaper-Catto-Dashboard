@@ -65,11 +65,11 @@ void DataManager::loadData(PetDataMap &petData) {
         JsonArray records = petPair.value().as<JsonArray>();
 
         for (JsonObject recordJson : records) {
-            LitterboxRecord rec;
+            SL_Record rec;
             rec.timestamp = recordJson["ts"];
-            rec.weight_grams = recordJson["w_g"];
+            rec.weight_lbs = recordJson["w_lb"];
             rec.duration_seconds = recordJson["dur_s"];
-            rec.pet_id = petId;
+            rec.PetId = petId;
             petData[petId][rec.timestamp] = rec;
         }
     }
@@ -103,12 +103,12 @@ void DataManager::saveData(const PetDataMap &petData) {
         JsonArray petArray = root[String(petId)].to<JsonArray>();
 
         for (auto const &recordPair : petPair.second) {
-            const LitterboxRecord &record = recordPair.second;
+            const SL_Record &record = recordPair.second;
             if (record.timestamp < pruneTimestamp) continue;
 
             JsonObject recJson = petArray.add<JsonObject>();
             recJson["ts"] = record.timestamp;
-            recJson["w_g"] = record.weight_grams;
+            recJson["w_lb"] = record.weight_lbs;
             recJson["dur_s"] = record.duration_seconds;
         }
     }
@@ -199,7 +199,7 @@ void DataManager::saveStatus(const StatusRecord &status) {
     return s;
  }
 
-void DataManager::mergeData(PetDataMap &mainData, int petId, const std::vector<LitterboxRecord> &newRecords) {
+void DataManager::mergeData(PetDataMap &mainData, int petId, const std::vector<SL_Record> &newRecords) {
     for (const auto &record : newRecords) {
         mainData[petId][record.timestamp] = record;
     }
@@ -208,7 +208,7 @@ void DataManager::mergeData(PetDataMap &mainData, int petId, const std::vector<L
 time_t DataManager::getLatestTimestamp(const PetDataMap &petData) {
     time_t latest = 0;
     for (auto const &petPair : petData) {
-        const std::map<time_t, LitterboxRecord> &recordsMap = petPair.second;
+        const std::map<time_t, SL_Record> &recordsMap = petPair.second;
         if (!recordsMap.empty()) {
             time_t petLatest = recordsMap.rbegin()->first;
             if (petLatest > latest) {
