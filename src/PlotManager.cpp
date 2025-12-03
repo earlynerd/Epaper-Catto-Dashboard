@@ -3,7 +3,7 @@
 PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp)
     : _display(disp) {}
 
-void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const StatusRecord &status, bool wifiSuccess, float temp, float humidity)
+void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, bool wifiSuccess, float temp, float humidity)
 {
     _display->fillScreen(GxEPD_WHITE);
 
@@ -33,10 +33,11 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                 continue;
 
             float weight_lbs = (float)record.weight_lbs;
-            struct tm* thistimestamp = localtime(&record.timestamp);
+            struct tm *thistimestamp = localtime(&record.timestamp);
             time_t ts = mktime(thistimestamp);
             pet_scatterplot[idx].push_back({(float)ts, weight_lbs});
-            if(record.duration_seconds > 0.0) duration_hist[idx].push_back((float)record.duration_seconds / 60.0);
+            if (record.duration_seconds > 0.0)
+                duration_hist[idx].push_back((float)record.duration_seconds / 60.0);
 
             if (lastTimestamp > 0)
                 interval_hist[idx].push_back(((float)(record.timestamp - lastTimestamp)) / 3600.0);
@@ -51,20 +52,25 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     histInterval.setTitle("Interval (Hours)");
     histInterval.setBinCount(16);
     histInterval.setNormalization(true);
-
-    //Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
-    //histDuration.setTitle("Duration (Minutes)");
-    //histDuration.setBinCount(16);
-    //histDuration.setNormalization(true);
-
     for (int i = 0; i < numPets; ++i)
     {
         histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
-        //histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+        // histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
     }
-
     histInterval.plot();
-   // histDuration.plot();
+
+    if (status.api_type == PETKIT)
+    {
+        Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
+        histDuration.setTitle("Duration (Minutes)");
+        histDuration.setBinCount(16);
+        histDuration.setNormalization(true);
+        for (int i = 0; i < numPets; ++i)
+        {
+            histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+        }
+        histDuration.plot();
+    }
 
     // --- Draw ScatterPlot ---
     ScatterPlot plot(_display, 0, 0, EPD_WIDTH, EPD_HEIGHT * 3 / 4);
@@ -126,7 +132,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     _display->setCursor(x, h / 2);
     _display->print(strftime_buf);
 
-    if (status.device_name.length() > 0)
+    if (status.litter_level_percent > 0)
     {
         _display->setFont(NULL);
         _display->setTextSize(0);
@@ -135,20 +141,28 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         char buffer[32];
         int16_t x = EPD_WIDTH * 3 / 4, y = 2, x1, y1;
         uint16_t w, h;
-        sprintf(buffer, "Litter: %d%%", status.litter_percent);
+        sprintf(buffer, "Litter: %d%%", status.litter_level_percent);
         _display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
         x = EPD_WIDTH - 20 - w - 120;
         _display->setCursor(x, h / 2);
         _display->print(buffer);
-
-        _display->setCursor(x, 3 * h / 2 + 4);
-        if (status.box_full)
+        if (status.api_type == PETKIT)
         {
-            _display->print("FULL");
+            _display->setCursor(x, 3 * h / 2 + 4);
+            if (status.is_drawer_full)
+            {
+                _display->print("FULL");
+            }
+            else
+            {
+                _display->print("Box OK");
+            }
         }
-        else
+        else        //whisker
         {
-            _display->print("Box OK");
+             _display->setCursor(x, 3 * h / 2 + 4);
+             sprintf(buffer, "Waste: %d%%", status.waste_level_percent);
+             _display->print(buffer);
         }
     }
 }

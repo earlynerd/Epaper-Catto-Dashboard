@@ -93,8 +93,8 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
     if (strlen(_time_zone) == 0)
     {
         bool tz_success = false;
-        for (int i = 0; i < 3; ++i)
-        { // Retry up to 3 times
+        for (int i = 0; i < MAX_SYNC_RETRIES; ++i)
+        { 
             Serial.printf("[Time Sync] Fetching timezone attempt %d...\n", i + 1);
 
             if (http.begin(client, TIME_API_URL))
@@ -156,29 +156,35 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
     return false;
 }
 
-bool NetworkManager::initPetKitApi()
+bool NetworkManager::initApi()
 {
     String user = _prefs.getString(NVS_PETKIT_USER_KEY, "");
     String pass = _prefs.getString(NVS_PETKIT_PASS_KEY, "");
     String region = _prefs.getString(NVS_PETKIT_REGION_KEY, "us");
+    _prefs.putString(NVS_PETKIT_REGION_KEY, region);        //TODO: find a way to look this up from timezone or something
     String tz = _prefs.getString(NVS_PETKIT_TIMEZONE_KEY, "");
 
     if (user == "" || pass == "")
         return false;
-    if(_ispetkit)
+    _petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str());
+    _litterbox = _petkit;
+    if(_litterbox->login()) return true;
+    else
     {
-         _petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str());
-         _litterbox = _petkit;
-    }
-    else 
-    {
+        _petkit->~PetKitApi();
         _whisker = new WhiskerApi(user.c_str(), pass.c_str(), tz.c_str());
         _litterbox = _whisker;
+    }
+    if(_litterbox->login()) return true;
+    else 
+    {
+        _whisker->~WhiskerApi();
+        _litterbox = nullptr;
+        return false;
     }
     
     //_petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str(), LED_PIN);
     
-    return _litterbox->login();
 }
 
 bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)

@@ -13,7 +13,7 @@ public:
     void renderDashboard(const std::vector<SL_Pet> &pets, 
                          PetDataMap &allPetData, 
                          const DateRangeInfo &range,
-                         const StatusRecord &status,
+                         const SL_Status &status,
                          bool wifiSuccess,
                          float temp,
                          float humidity);

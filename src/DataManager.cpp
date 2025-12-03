@@ -145,14 +145,16 @@ void DataManager::saveData(const PetDataMap &petData) {
     }
 }
 
-void DataManager::saveStatus(const StatusRecord &status) {
+void DataManager::saveStatus(const SL_Status &status) {
     JsonDocument doc; 
     JsonObject root = doc.to<JsonObject>();
-    root["box_full"] = status.box_full;
+    root["is_drawer_full"] = status.is_drawer_full;
     root["device_name"] = status.device_name;
     root["device_type"] = status.device_type;
-    root["litter_percent"] = status.litter_percent;
-    root["sand_lack"] = status.sand_lack;
+    root["litter_level_percent"] = status.litter_level_percent;
+    root["waste_level_percent"] = status.waste_level_percent;
+    root["is_error_state"] = status.is_error_state;
+    root["status_text"] = status.status_text;
     root["timestamp"] = status.timestamp;
 
     File file = SD.open(_status_filename, FILE_WRITE);
@@ -163,13 +165,16 @@ void DataManager::saveStatus(const StatusRecord &status) {
     }
 }
 
- StatusRecord DataManager::getStatus()
+ SL_Status DataManager::getStatus()
  {
-    StatusRecord s;
-    s.box_full = false;
-    s.litter_percent = 0;
+    SL_Status s;
+    s.waste_level_percent = 0;
+    s.litter_level_percent = 0;
     s.timestamp = 0;
     s.device_name = "";
+    s.device_type = "";
+    s.is_drawer_full = 0;
+    s.is_error_state = false;
 
     if (!SD.exists(_status_filename)) {
         Serial.println("[DataManager] No Status file found.");
@@ -191,11 +196,13 @@ void DataManager::saveStatus(const StatusRecord &status) {
     
     JsonObject root = doc.as<JsonObject>();
     s.device_name = root["device_name"].as<String>();
-    s.box_full = root["box_full"];
     s.device_type = root["device_name"].as<String>();
-    s.litter_percent = root["litter_percent"]; 
-    s.sand_lack = root["sand_lack"];
+    s.is_drawer_full = root["is_drawer_full"];
+    s.litter_level_percent = root["litter_level_percent"]; 
+    s.waste_level_percent = root["waste_level_percent"];
     s.timestamp = root["timestamp"];
+    s.status_text = root["status_text"].as<String>();
+    s.is_error_state = root["is_error_state"];
     return s;
  }
 

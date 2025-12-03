@@ -31,7 +31,7 @@ public:
     bool syncTime(RTC_PCF8563& rtc);
     
     // Initialize API client
-    bool initPetKitApi();
+    bool initApi();
     
     // Get the API client instance
     SmartLitterbox* getApi() { return _litterbox; }

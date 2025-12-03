@@ -4,8 +4,8 @@
 #include "WifiProvisioner.h"
 
 WiFiProvisioner::Config provisionerCustom = {
-    "PetkitDashboard",
-    "Welcome to Wi-Fi Provision",
+    "CattoDashboard",
+    "Please Enter Wifi Details",
     "dodgerblue",
      R"rawliteral(
           <svg xmlns="http://www.w3.org/2000/svg" width="5rem" height="5rem" preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32">
@@ -14,9 +14,9 @@ WiFiProvisioner::Config provisionerCustom = {
             <path fill="var(--font-color)" d="M26 13h-2a5.006 5.006 0 0 0-5-5V6a7.008 7.008 0 0 1 7 7Z"/>
           </svg>
         )rawliteral",
-    "Petkit Dashboard",
+    "Catto Dashboard",
     "Device Setup",
-     "Please Enter your WiFi and Petkit Account details",
+     "Please Enter your WiFi and Smart Litterbox Account details",
     "",
     
         "Your device is now provisioned and ready to use.",
@@ -25,8 +25,8 @@ WiFiProvisioner::Config provisionerCustom = {
     4,
     false,
     true,
-    "Petkit Username",
-    "Petkit Password",
+    "Litterbox Account Username",
+    "Litterbox Account Password",
     true,
 };
 

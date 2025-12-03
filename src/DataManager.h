@@ -23,10 +23,10 @@ public:
     void saveData(const PetDataMap &petData);
     
     //save latest status for display on plot
-    void saveStatus(const StatusRecord &status);
+    void saveStatus(const SL_Status &status);
 
     //fetch sotred status info from SD card
-    StatusRecord getStatus();
+    SL_Status getStatus();
 
     // Merge new records from API into the main map
     void mergeData(PetDataMap &mainData, int PetId, const std::vector<SL_Record> &newRecords);

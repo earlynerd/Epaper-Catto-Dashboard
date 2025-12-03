@@ -69,8 +69,8 @@ void ScatterPlot::draw()
     float yRange = yMax - yMin;
     xMin -= xRange * 0.05;
     xMax += xRange * 0.05;
-    yMin -= yRange * 0.05;
-    yMax += yRange * 0.05;
+    yMin -= yRange * 0.15;
+    yMax += yRange * 0.15;
 
     if (xMax == xMin) { xMax += 1.0; xMin -= 1.0; }
     if (yMax == yMin) { yMax += 1.0; yMin -= 1.0; }

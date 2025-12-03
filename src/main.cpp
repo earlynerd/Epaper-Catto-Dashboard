@@ -112,7 +112,7 @@ void setup()
   dataManager.begin(hspi);
   dataManager.loadData(allPetData);
 
-  StatusRecord status = dataManager.getStatus();
+  SL_Status status = dataManager.getStatus();
 
   sensors_event_t humidity, temp;
   sht4.getEvent(&humidity, &temp);
@@ -155,9 +155,10 @@ void setup()
     
     if(networkManager->syncTime(rtc)) wifiSuccess = true;
     
-    if (networkManager->initPetKitApi())
+    if (networkManager->initApi())
     {
       networkManager->getApi()->setDebug(true);
+      
       // Calculate how many days we are missing
       int daysToFetch = 30; // Default max
 
@@ -172,12 +173,12 @@ void setup()
         int daysDifference = (int)(secondsDifference / 86400) + 2; // +buffer
         daysToFetch = std::min(std::max(daysDifference, 1), 30);
       }
-      Serial.printf("Requesting %d days of data from PetKit.\r\n", daysToFetch);
+      Serial.printf("Requesting %d days of data from API.\r\n", daysToFetch);
 
       if (networkManager->getApi()->fetchAllData(daysToFetch))
       {
         allPets = networkManager->getApi()->getUnifiedPets();
-        
+        status = networkManager->getApi()->getUnifiedStatus();
         // Store pets to NVS
         if (!allPets.empty())
         {
@@ -186,12 +187,12 @@ void setup()
         // Merge data
         for (const auto &pet : allPets)
         {
-          auto records = networkManager->getApi()->getUnifiedRecords();
+          auto records = networkManager->getApi()->getRecordsByPetId(pet.id, true);
           dataManager.mergeData(allPetData, pet.id.toInt(), records);
         }
         dataManager.saveData(allPetData);
         //status = networkManager->getApi()->getLatestStatus();
-        if (status.device_name.length() > 0)
+        if (status.litter_level_percent > 0)
         {
           dataManager.saveStatus(status);
         }
