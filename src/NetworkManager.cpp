@@ -192,7 +192,7 @@ bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)
     if (rtc.lostPower())
         return false;
     DateTime nowrtc = rtc.now();
-    const timeval t = {.tv_sec = nowrtc.unixtime(), .tv_usec = 0 };
+    const timeval t = {.tv_sec = (time_t)nowrtc.unixtime(), .tv_usec = 0 };
     settimeofday(&t, NULL);
     Serial.println("[Network] Time recalled from RTC");
     String storedTZ = _prefs.getString(NVS_TZ_KEY, "");

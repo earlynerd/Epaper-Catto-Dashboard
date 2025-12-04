@@ -74,7 +74,7 @@ void Histogram::processData()
         _minVal -= 1.0f;
         _maxVal += 1.0f;
     }
-    _minVal = 0; // Forcing 0 min-val as in original code
+    _minVal = 0; // Forcing 0 min-val
 
     // Bin the data for each series
     float binWidth = (_maxVal - _minVal) / _numBins;
@@ -373,12 +373,11 @@ void Histogram::drawPatternRect(int16_t x, int16_t y, int16_t w, int16_t h,  uin
     if (w <= 0 || h <= 0)
         return;
 
-    // Draw diagonal fill lines /// by drawing parallel lines of the form x-y=k.
+    // Draw diagonal fill lines by drawing parallel lines of the form x-y=k.
     // We iterate k through the box dimensions and calculate the clipped start
     // and end points for the line segment that falls within the rectangle.
     for (int16_t k = 4; k < w + h; k += 4)
     { // Start at 4 to not draw on the border
-
         // Calculate the start point (bottom-left of the line segment)
         int16_t x1_rel = std::max(0, k - h);
         int16_t y1_rel = k - x1_rel - 1;
