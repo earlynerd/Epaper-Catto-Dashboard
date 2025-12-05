@@ -12,6 +12,8 @@
 #include "WhiskerApi.h"
 #include "config.h"
 #include "RTClib.h"
+#include "DataManager.h"
+
 #if (EPD_SELECT == 1002)
 #include <GxEPD2_7C.h>
 #elif (EPD_SELECT == 1001)
@@ -19,7 +21,7 @@
 #endif
 class NetworkManager {
 public:
-    NetworkManager(Preferences& prefs);
+    NetworkManager(DataManager* dataManager);
     
     // Connect to WiFi, falling back to provisioning if it fails
     void connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display);
@@ -40,7 +42,6 @@ public:
     void factoryReset();
 
 private:
-    Preferences& _prefs;
     WhiskerApi* _whisker = nullptr;
     PetKitApi* _petkit = nullptr;
     SmartLitterbox* _litterbox = nullptr;
@@ -48,6 +49,7 @@ private:
     char _time_zone[64];
     bool _ispetkit = false;
     bool getTimezoneAndSync(RTC_PCF8563& rtc);
+    DataManager* _dataManager;
 };
 
 #endif

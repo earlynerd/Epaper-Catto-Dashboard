@@ -72,6 +72,8 @@ private:
 
     //add the present time to show when display last refreshed
     void add_refresh_timestamp();
+    float floatMap(float x, float in_min, float in_max, float out_min, float out_max);
+    
 };
 
 #endif // SCATTER_PLOT_H

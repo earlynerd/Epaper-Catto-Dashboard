@@ -5,6 +5,7 @@
 #include "config.h"
 #include "ScatterPlot.h"
 #include "histogram.h"
+#include "Dashboard.h"
 
 class PlotManager {
 public:

@@ -7,17 +7,18 @@
 #include "RTClib.h"
 #include "Adafruit_SHT4x.h"
 
+
 // Globals
 GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display;
 RTC_PCF8563 rtc;
-Preferences preferences;
+
 Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 SPIClass hspi(HSPI);
 
 DataManager dataManager;
 NetworkManager *networkManager;
 PlotManager *plotManager;
-
+//Preferences preferences;
 PetDataMap allPetData;
 std::vector<SL_Pet> allPets;
 
@@ -91,8 +92,8 @@ void checkFactoryReset() {
       display->setTextSize(2);
       display->print("Factory Reset...");
       display->display();
-      
-      preferences.clear(); // Wipe NVS
+      //TODO: delete sd card files
+      //preferences.clear(); // Wipe NVS
       delay(2000);
       ESP.restart();
   }
@@ -101,15 +102,15 @@ void checkFactoryReset() {
 void setup()
 {
   initHardware();
-  preferences.begin(NVS_NAMESPACE);
+  //preferences.begin(NVS_NAMESPACE);
 
   checkFactoryReset();
-
-  networkManager = new NetworkManager(preferences);
+  dataManager.begin(hspi);
+  networkManager = new NetworkManager(&dataManager);
   plotManager = new PlotManager(display);
 
   // 1. Load Local Data from Micro SD
-  dataManager.begin(hspi);
+  
   dataManager.loadData(allPetData);
 
   SL_Status status = dataManager.getStatus();
@@ -119,7 +120,8 @@ void setup()
   float currentTemp = temp.temperature;
   float currentHumid = humidity.relative_humidity;
 
-  int rangeIndex = preferences.getInt(NVS_PLOT_RANGE_KEY, 0);
+  //int rangeIndex = preferences.getInt(NVS_PLOT_RANGE_KEY, 0);
+  int rangeIndex = dataManager.getPlotRange();
   rtc.begin();
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
   {
@@ -136,7 +138,8 @@ void setup()
       if (rangeIndex < 0)
         rangeIndex = (int)Date_Range_Max - 1;
     }
-    preferences.putInt(NVS_PLOT_RANGE_KEY, rangeIndex);
+    //preferences.putInt(NVS_PLOT_RANGE_KEY, rangeIndex);
+    dataManager.savePlotRange(rangeIndex);
   }
 
   bool isViewUpdate = (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
@@ -182,7 +185,8 @@ void setup()
         // Store pets to NVS
         if (!allPets.empty())
         {
-          preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
+          //preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
+          dataManager.savePets(allPets);
         }
         // Merge data
         for (const auto &pet : allPets)
@@ -204,12 +208,13 @@ void setup()
     // If we are just updating the view (button1 or 2 press), try to load pets from NVS
     // so we have names for the charts without needing WiFi
     networkManager->initializeFromRtc(rtc);
-    size_t len = preferences.getBytesLength(NVS_PETS_KEY);
-    if (len > 0)
-    {
-      allPets.resize(len / sizeof(Pet));
-      preferences.getBytes(NVS_PETS_KEY, allPets.data(), len);
-    }
+    //size_t len = preferences.getBytesLength(NVS_PETS_KEY);
+    //if (len > 0)
+    //{
+    //  allPets.resize(len / sizeof(Pet));
+    //  preferences.getBytes(NVS_PETS_KEY, allPets.data(), len);
+    //}
+    allPets = dataManager.getPets();
     //status = dataManager.getStatus();
   }
 

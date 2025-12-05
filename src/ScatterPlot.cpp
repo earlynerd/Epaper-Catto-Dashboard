@@ -63,17 +63,21 @@ void ScatterPlot::draw()
     for (const auto& s : _series) {
         findMinMax(s.data);
     }
-
+    yMin = 0;
     // Add a 5% padding to the ranges
     float xRange = xMax - xMin;
     float yRange = yMax - yMin;
     xMin -= xRange * 0.05;
     xMax += xRange * 0.05;
-    yMin -= yRange * 0.15;
+    //yMin -= yRange * 0.15;
     yMax += yRange * 0.15;
 
+    
+    
     if (xMax == xMin) { xMax += 1.0; xMin -= 1.0; }
     if (yMax == yMin) { yMax += 1.0; yMin -= 1.0; }
+    yMin = 0;
+    
 
     // 2. Clear the plot area (fill with white)
     display->fillRect(_x, _y, _width, _height, GxEPD_WHITE);
@@ -101,7 +105,11 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     for (int i = 0; i <= numYTicks; ++i)
     {
         
-        int yPos = plotAreaY + (plotAreaHeight * i) / numYTicks;        
+        //int yPos = plotAreaY + (plotAreaHeight * i) / numYTicks;
+        float yVal = floatMap((float)i, 0.0, (float)numYTicks, yMax, yMin);   
+        DataPoint tickpoint = {0.0, yVal };     
+        int xPos, yPos;
+        mapPoint(tickpoint, xPos, yPos, xMin, xMax, yMin, yMax);
         if (i == numYTicks) display->drawLine(plotAreaX - 5, plotAreaY + plotAreaHeight-1, plotAreaX, plotAreaY + plotAreaHeight-1, EPD_BLACK);
         else display->drawLine(plotAreaX - 5, yPos, plotAreaX, yPos, EPD_BLACK); // Tick mark
         if (i < numYTicks)
@@ -331,4 +339,16 @@ void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
         // Move the current position to the start of the next dash
         currentPos += cycleLength;
     }
+}
+
+float ScatterPlot::floatMap(float x, float in_min, float in_max, float out_min, float out_max)
+{
+    const float run = in_max - in_min;
+    if(run == 0){
+        //log_e("map(): Invalid input range, min == max");
+        return 0.0; // AVR returns -1, SAM returns 0
+    }
+    const float rise = out_max - out_min;
+    const float delta = x - in_min;
+    return (delta * rise) / run + out_min;
 }

@@ -48,19 +48,18 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     }
 
     // --- Draw Histograms ---
-    Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
-    histInterval.setTitle("Interval (Hours)");
-    histInterval.setBinCount(16);
-    histInterval.setNormalization(true);
-    for (int i = 0; i < numPets; ++i)
-    {
-        histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
-        // histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
-    }
-    histInterval.plot();
-
     if (status.api_type == PETKIT)
     {
+        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
+        histInterval.setTitle("Interval (Hours)");
+        histInterval.setBinCount(16);
+        histInterval.setNormalization(true);
+        for (int i = 0; i < numPets; ++i)
+        {
+            histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+            // histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+        }
+        histInterval.plot();
         Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
         histDuration.setTitle("Duration (Minutes)");
         histDuration.setBinCount(16);
@@ -70,6 +69,22 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
         }
         histDuration.plot();
+    }
+    else
+    {
+        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() * 3 / 4, _display->height() / 4);
+        histInterval.setTitle("Interval (Hours)");
+        if (pets.size() == 1)
+            histInterval.setBinCount(32);
+        else
+            histInterval.setBinCount(24);
+        histInterval.setNormalization(true);
+        for (int i = 0; i < numPets; ++i)
+        {
+            histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+            // histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+        }
+        histInterval.plot();
     }
 
     // --- Draw ScatterPlot ---
@@ -134,20 +149,21 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 
     if (status.litter_level_percent > 0)
     {
-        _display->setFont(NULL);
-        _display->setTextSize(0);
-        _display->setTextColor(EPD_BLACK);
 
-        char buffer[32];
-        int16_t x = EPD_WIDTH * 3 / 4, y = 2, x1, y1;
-        uint16_t w, h;
-        sprintf(buffer, "Litter: %d%%", status.litter_level_percent);
-        _display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-        x = EPD_WIDTH - 20 - w - 120;
-        _display->setCursor(x, h / 2);
-        _display->print(buffer);
         if (status.api_type == PETKIT)
         {
+            _display->setFont(NULL);
+            _display->setTextSize(0);
+            _display->setTextColor(EPD_BLACK);
+
+            char buffer[32];
+            int16_t x = EPD_WIDTH * 3 / 4, y = 2, x1, y1;
+            uint16_t w, h;
+            sprintf(buffer, "Litter: %d%%", status.litter_level_percent);
+            _display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
+            x = EPD_WIDTH - 20 - w - 120;
+            _display->setCursor(x, h / 2);
+            _display->print(buffer);
             _display->setCursor(x, 3 * h / 2 + 4);
             if (status.is_drawer_full)
             {
@@ -158,11 +174,19 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                 _display->print("Box OK");
             }
         }
-        else        //whisker
+        else // whisker
         {
-             _display->setCursor(x, 3 * h / 2 + 4);
-             sprintf(buffer, "Waste: %d%%", status.waste_level_percent);
-             _display->print(buffer);
+            //_display->setCursor(x, 3 * h / 2 + 4);
+            // sprintf(buffer, "Waste: %d%%", status.waste_level_percent);
+            //_display->print(buffer);
+            LinearGauge litterGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
+            litterGauge.setRange(0, 100, "%");
+            litterGauge.showLabel(true, "Litter: ");
+            litterGauge.draw(status.litter_level_percent);
+            LinearGauge wasteGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
+            wasteGauge.setRange(0, 100, "%");
+            wasteGauge.showLabel(true, "Waste: ");
+            wasteGauge.draw(status.waste_level_percent);
         }
     }
 }

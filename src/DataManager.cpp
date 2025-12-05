@@ -20,6 +20,18 @@ bool DataManager::begin(SPIClass &spi) {
     }
     
     Serial.println("[DataManager] SD Card Mounted.");
+
+    if(!loadSecrets()) 
+    {   Serial.println("[DataManager] secrets.json not found, creating empty template.");
+        saveSecrets("", "", "", "");        //create template json file that can be manually filled in
+    }
+    else Serial.println("[DataManager] secrets.json loaded!.");
+    if(!loadTimezone())
+    {
+       Serial.println("[DataManager] timezone.json not found, creating empty template."); 
+       saveTimezone("","");
+    } 
+    else Serial.println("[DataManager] timezone.json loaded!.");
     return true;
 }
 
@@ -148,6 +160,7 @@ void DataManager::saveData(const PetDataMap &petData) {
 void DataManager::saveStatus(const SL_Status &status) {
     JsonDocument doc; 
     JsonObject root = doc.to<JsonObject>();
+    root["api_type"] = (int)status.api_type;
     root["is_drawer_full"] = status.is_drawer_full;
     root["device_name"] = status.device_name;
     root["device_type"] = status.device_type;
@@ -160,14 +173,159 @@ void DataManager::saveStatus(const SL_Status &status) {
     File file = SD.open(_status_filename, FILE_WRITE);
     if (file) {
         serializeJson(doc, file);
+        file.flush(); 
         file.close();
         Serial.println("[DataManager] Status saved to SD.");
     }
 }
 
+void DataManager::savePlotRange(int range)
+{
+    JsonDocument doc; 
+    JsonObject root = doc.to<JsonObject>();
+    root["plot_range_index"] = range;
+    
+    File file = SD.open(_config_filename, FILE_WRITE);
+    if (file) {
+        serializeJson(doc, file);
+        file.flush(); 
+        file.close();
+        Serial.println("[DataManager] Config.json saved to SD.");
+    }
+}
+
+int DataManager::getPlotRange()
+{
+    if (!SD.exists(_config_filename)) {
+        Serial.println("[DataManager] No Plot Range File found. creating....");
+        savePlotRange(0);
+        return 0;
+    }
+    File file = SD.open(_config_filename, FILE_READ);
+    if(!file) return false;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if(error) 
+    {
+        Serial.print("[DataManager] config JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+    JsonObject root = doc.as<JsonObject>();
+    int range = root["plot_range_index"].as<int>();
+    return range;
+}
+
+void DataManager::savePets(std::vector<SL_Pet> pets) {
+    JsonDocument doc; 
+    JsonObject root = doc.to<JsonObject>();
+    
+    for (const auto &pet : pets)
+    {
+        //int petId = atoi(pet.id.c_str());
+        JsonObject thispet = root[pet.id].to<JsonObject>();
+        thispet["name"] = pet.name;
+        thispet["weight_lbs"] = pet.weight_lbs;
+    }
+
+    File file = SD.open(_pets_filename, FILE_WRITE);
+    if (file) {
+        serializeJson(doc, file);
+        file.flush(); 
+        file.close();
+        Serial.println("[DataManager] Pets saved to SD.");
+    }
+    else Serial.println("[DataManager] Error saving Pets to SD.");
+}
+
+void DataManager::saveSecrets(String ssid, String wifi_pass, String SL_Account, String SL_pass)
+{
+    _ssid = ssid;
+    _wifi_pass = wifi_pass;
+    _SL_Account = SL_Account;
+    _SL_pass = SL_pass;
+
+    JsonDocument doc; 
+    JsonObject root = doc.to<JsonObject>();
+    root["ssid"] = ssid;
+    root["wifi_pass"] = wifi_pass;
+    root["SL_Account"] = SL_Account;
+    root["SL_pass"] = SL_pass;
+    File file = SD.open(_secrets_filename, FILE_WRITE);
+    if (file) {
+        serializeJson(doc, file);
+        file.flush(); 
+        file.close();
+        Serial.println("[DataManager] Secrets saved to SD.");
+    }
+}
+
+bool DataManager::loadSecrets()
+{
+    _ssid = "";
+    _wifi_pass = "";
+    _SL_Account = "";
+    _SL_pass = "";
+    File file = SD.open(_secrets_filename, FILE_READ);
+    if(!file) return false;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if(error) 
+    {
+        Serial.print("[DataManager] pets JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+    JsonObject root = doc.as<JsonObject>();
+    _ssid = root["ssid"].as<String>();
+    _wifi_pass = root["wifi_pass"].as<String>();
+    _SL_Account = root["SL_Account"].as<String>();
+    _SL_pass = root["SL_pass"].as<String>();
+    if((_ssid.length() > 0 ) && (_wifi_pass.length() > 0 ) && (_SL_Account.length() > 0 ) && (_SL_pass.length() > 0 )) return true;
+    return false;
+    
+
+}
+
+std::vector<SL_Pet> DataManager::getPets()
+{
+    std::vector<SL_Pet> pets;
+    if (!SD.exists(_pets_filename)) {
+        Serial.println("[DataManager] No Pets file found.");
+        return pets;
+    }
+    File file = SD.open(_pets_filename, FILE_READ);
+    if(!file) return pets;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if (error) {
+        Serial.print("[DataManager] pets JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return pets;
+    }
+    JsonObject root = doc.as<JsonObject>();
+    for(JsonPair rec : root)
+    {
+        SL_Pet thispet;
+        thispet.id = rec.key().c_str();
+        JsonObject details = rec.value().as<JsonObject>();
+        thispet.name = details["name"].as<String>();
+        thispet.weight_lbs = details["weight_lbs"];
+        pets.push_back(thispet);
+    }
+    Serial.println("[DataManager] Pets recalled from SD.");
+    return pets;
+}
+
+
+
  SL_Status DataManager::getStatus()
  {
     SL_Status s;
+    s.api_type = ApiType::PETKIT;
     s.waste_level_percent = 0;
     s.litter_level_percent = 0;
     s.timestamp = 0;
@@ -195,6 +353,7 @@ void DataManager::saveStatus(const SL_Status &status) {
     }
     
     JsonObject root = doc.as<JsonObject>();
+    s.api_type = root["api_type"];
     s.device_name = root["device_name"].as<String>();
     s.device_type = root["device_name"].as<String>();
     s.is_drawer_full = root["is_drawer_full"];
@@ -224,4 +383,46 @@ time_t DataManager::getLatestTimestamp(const PetDataMap &petData) {
         }
     }
     return latest;
+}
+
+void DataManager::saveTimezone(String tz, String region)
+{
+    _tz = tz;
+    _region = region;
+
+    JsonDocument doc; 
+    JsonObject root = doc.to<JsonObject>();
+
+    root["tz"] = tz;
+    root["region"] = region;
+    File file = SD.open(_tz_filename, FILE_WRITE);
+    if (file) {
+        serializeJson(doc, file);
+        file.flush(); 
+        file.close();
+        Serial.println("[DataManager] Timezone saved to SD.");
+    }
+
+}
+
+bool DataManager::loadTimezone()
+{
+    _tz = "";
+    _region = "";
+    File file = SD.open(_tz_filename, FILE_READ);
+    if(!file) return false;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if(error) 
+    {
+        Serial.print("[DataManager] timezone JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+    JsonObject root = doc.as<JsonObject>();
+    _tz = root["tz"].as<String>();
+    _region = root["region"].as<String>();
+    if((_tz.length() > 0 ) && (_region.length() > 0 )) return true;
+    return false;
 }

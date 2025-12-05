@@ -3,9 +3,10 @@
 #include "certs.h"
 #include "provisionerConfig.h"
 
-NetworkManager::NetworkManager(Preferences &prefs) : _prefs(prefs)
+NetworkManager::NetworkManager(DataManager* dataManager) 
 {
     // Initialize time zone string to empty
+    _dataManager = dataManager;
     memset(_time_zone, 0, sizeof(_time_zone));
 }
 
@@ -17,20 +18,23 @@ void NetworkManager::connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS
     provisioner.onSuccess([this](const char *ssid, const char *password, const char *input, const char *pkuser, const char *pkpass)
                           {
                               Serial.printf("Connected to SSID: %s\n", ssid);
-                              _prefs.putString(NVS_SSID_KEY, ssid);
-                              if (password)
-                                  _prefs.putString(NVS_WIFI_PASS_KEY, password);
-                              if (pkuser)
-                                  _prefs.putString(NVS_PETKIT_USER_KEY, pkuser);
-                              if (pkpass)
-                                  _prefs.putString(NVS_PETKIT_PASS_KEY, pkpass);
+                              _dataManager->saveSecrets(ssid, password, pkuser, pkpass);
+                              //_prefs.putString(NVS_SSID_KEY, ssid);
+                              //if (password)
+                              //    _prefs.putString(NVS_WIFI_PASS_KEY, password);
+                              //if (pkuser)
+                              //    _prefs.putString(NVS_PETKIT_USER_KEY, pkuser);
+                              //if (pkpass)
+                               //   _prefs.putString(NVS_PETKIT_PASS_KEY, pkpass);
                               Serial.println("Provisioning success! Restarting...");
-                              _prefs.end();
+                              //_prefs.end();
                               ESP.restart(); // Clean restart after provisioning
                           });
 
-    String ssid = _prefs.getString(NVS_SSID_KEY, "");
-    String pass = _prefs.getString(NVS_WIFI_PASS_KEY, "");
+    //String ssid = _prefs.getString(NVS_SSID_KEY, "");
+    String ssid = _dataManager->get_ssid();
+    //String pass = _prefs.getString(NVS_WIFI_PASS_KEY, "");
+    String pass = _dataManager->get_wifi_pass();
 
     if (ssid == "")
     {
@@ -67,17 +71,18 @@ void NetworkManager::connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS
 bool NetworkManager::syncTime(RTC_PCF8563 &rtc)
 {
     // Try to load saved Timezone from NVS
-    String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
+    //String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
+    String storedTZ = _dataManager->get_timezone();
     if (storedTZ.length() > 0)
     {
         strncpy(_time_zone, storedTZ.c_str(), sizeof(_time_zone) - 1);
         setenv("TZ", storedTZ.c_str(), 1);
         tzset();
-        Serial.printf("[Network] Loaded Timezone from NVS: %s\n", _time_zone);
+        Serial.printf("[Network] Loaded Timezone from SD: %s\n", _time_zone);
     }
     else
     {
-        Serial.println("[Network] No Timezone in NVS. Will fetch from API.");
+        Serial.println("[Network] No Timezone on SD card. Will fetch from API.");
     }
 
     return getTimezoneAndSync(rtc);
@@ -109,13 +114,14 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
                         if (tz_iana)
                         {
                             // Save IANA (e.g. "America/New_York") for PetKit
-                            _prefs.putString(NVS_PETKIT_TIMEZONE_KEY, tz_iana);
+                            //_prefs.putString(NVS_PETKIT_TIMEZONE_KEY, tz_iana);
 
                             // Convert IANA to POSIX (e.g. "EST5EDT,M3.2.0,M11.1.0") for ESP32 system time
                             const char *tz_posix = TzDbLookup::getPosix(tz_iana);
 
                             strncpy(_time_zone, tz_posix, sizeof(_time_zone) - 1);
-                            _prefs.putString(NVS_TZ_KEY, _time_zone);
+                            //_prefs.putString(NVS_TZ_KEY, _time_zone);
+                            _dataManager->saveTimezone(_time_zone, "us");
 
                             Serial.printf("[Time Sync] Discovered Timezone: %s (%s)\n", tz_iana, _time_zone);
                             tz_success = true;
@@ -158,11 +164,15 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
 
 bool NetworkManager::initApi()
 {
-    String user = _prefs.getString(NVS_PETKIT_USER_KEY, "");
-    String pass = _prefs.getString(NVS_PETKIT_PASS_KEY, "");
-    String region = _prefs.getString(NVS_PETKIT_REGION_KEY, "us");
-    _prefs.putString(NVS_PETKIT_REGION_KEY, region);        //TODO: find a way to look this up from timezone or something
-    String tz = _prefs.getString(NVS_PETKIT_TIMEZONE_KEY, "");
+    //String user = _prefs.getString(NVS_PETKIT_USER_KEY, "");
+    String user = _dataManager->get_SL_Account();
+    //String pass = _prefs.getString(NVS_PETKIT_PASS_KEY, "");
+    String pass = _dataManager->get_SL_pass();
+    //String region = _prefs.getString(NVS_PETKIT_REGION_KEY, "us");
+    String  region = _dataManager->get_region();
+    //_prefs.putString(NVS_PETKIT_REGION_KEY, region);        //TODO: find a way to look this up from timezone or something
+    //String tz = _prefs.getString(NVS_PETKIT_TIMEZONE_KEY, "");
+    String tz = _dataManager->get_region();
 
     if (user == "" || pass == "")
         return false;
@@ -195,17 +205,18 @@ bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)
     const timeval t = {.tv_sec = (time_t)nowrtc.unixtime(), .tv_usec = 0 };
     settimeofday(&t, NULL);
     Serial.println("[Network] Time recalled from RTC");
-    String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
+    //String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
+    String storedTZ = _dataManager->get_timezone();
     if (storedTZ.length() > 0)
     {
         strncpy(_time_zone, storedTZ.c_str(), sizeof(_time_zone) - 1);
         setenv("TZ", storedTZ.c_str(), 1);
         tzset();
-        Serial.printf("[Network] Loaded Timezone from NVS: %s\n", _time_zone);
+        Serial.printf("[Network] Loaded Timezone from SD: %s\n", _time_zone);
     }
     else
     {
-        Serial.println("[Network] No Timezone in NVS.");
+        Serial.println("[Network] No Timezone on file.");
         return false;
     }
     
