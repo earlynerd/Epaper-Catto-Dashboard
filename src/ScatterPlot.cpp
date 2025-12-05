@@ -63,20 +63,20 @@ void ScatterPlot::draw()
     for (const auto& s : _series) {
         findMinMax(s.data);
     }
-    yMin = 0;
+    //yMin = 0;
     // Add a 5% padding to the ranges
     float xRange = xMax - xMin;
     float yRange = yMax - yMin;
     xMin -= xRange * 0.05;
     xMax += xRange * 0.05;
-    //yMin -= yRange * 0.15;
+    yMin -= yRange * 0.40;
     yMax += yRange * 0.15;
 
     
     
     if (xMax == xMin) { xMax += 1.0; xMin -= 1.0; }
     if (yMax == yMin) { yMax += 1.0; yMin -= 1.0; }
-    yMin = 0;
+    //yMin = 0;
     
 
     // 2. Clear the plot area (fill with white)

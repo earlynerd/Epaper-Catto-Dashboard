@@ -28,6 +28,11 @@ public:
     //fetch sotred status info from SD card
     SL_Status getStatus();
 
+    //push new temperature adn humidity datapoint 
+    void addEnvData(env_data);
+
+    std::vector<env_data> getEnvData();
+
     //save wifi and smart litterbox login to sd card
     void saveSecrets(String ssid, String wifi_pass, String SL_Account, String SL_pass);
 
@@ -40,6 +45,7 @@ public:
     String get_SL_pass(){return _SL_pass;}
     String get_timezone(){return _tz;}
     String get_region(){return _region;}
+
 
 
     //store to SD card vector of pet names and IDs
@@ -61,6 +67,7 @@ private:
     const char* _secrets_filename = "/secrets.json";
     const char* _tz_filename = "/timezone.json";
     const char* _config_filename = "/config.json";
+    const char* _env_data_filename = "/env_data.json";
 
     String _ssid;
     String _wifi_pass;
@@ -70,6 +77,7 @@ private:
     String _tz;
     bool loadSecrets();
     bool loadTimezone();
+    void saveEnvData(std::vector<env_data>& env);
 };
 
 #endif

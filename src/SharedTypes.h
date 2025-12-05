@@ -26,6 +26,13 @@ struct DateRangeInfo {
   long seconds;
 };
 
+struct env_data
+{
+  float temperature;
+  float humidity;
+  time_t timestamp;
+};
+
 // Global constants for NVS keys
 #define NVS_NAMESPACE "petkitplotter"
 #define NVS_PLOT_RANGE_KEY "plotrange"

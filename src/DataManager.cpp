@@ -285,8 +285,6 @@ bool DataManager::loadSecrets()
     _SL_pass = root["SL_pass"].as<String>();
     if((_ssid.length() > 0 ) && (_wifi_pass.length() > 0 ) && (_SL_Account.length() > 0 ) && (_SL_pass.length() > 0 )) return true;
     return false;
-    
-
 }
 
 std::vector<SL_Pet> DataManager::getPets()
@@ -425,4 +423,64 @@ bool DataManager::loadTimezone()
     _region = root["region"].as<String>();
     if((_tz.length() > 0 ) && (_region.length() > 0 )) return true;
     return false;
+}
+
+void DataManager::addEnvData(env_data newvalue)
+{   
+    Serial.printf("{DataManager] Temperature: %.2f, Humidity %.2f\r\n", newvalue.temperature, newvalue.humidity);
+    std::vector<env_data> env = getEnvData();
+    env.push_back(newvalue);
+    saveEnvData(env);
+}
+
+void DataManager::saveEnvData(std::vector<env_data>& env)
+{
+    JsonDocument doc;
+    JsonObject root = doc.to<JsonObject>();
+    JsonArray data = root["data"].to<JsonArray>();
+    for(env_data dat: env)
+    {
+        JsonObject recJson = data.add<JsonObject>();
+        recJson["temperature"] = dat.temperature;
+        recJson["humidity"] = dat.humidity;
+        recJson["timestamp"] = dat.timestamp;
+    }
+    File file = SD.open(_env_data_filename, FILE_WRITE);
+    if (file) {
+        serializeJson(doc, file);
+        file.flush(); 
+        file.close();
+        Serial.println("[DataManager] ENV data saved to SD.");
+    }
+}
+
+std::vector<env_data> DataManager::getEnvData()
+{
+    std::vector<env_data> env;
+    if (!SD.exists(_env_data_filename)) {
+        Serial.println("[DataManager] No environmental data found.");
+        return env;
+    }
+    File file = SD.open(_env_data_filename, FILE_READ);
+    if(!file) return env;
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+    if (error) {
+        Serial.print("[DataManager] env JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return env;
+    }
+    JsonObject root = doc.as<JsonObject>();
+    JsonArray records = root["data"].as<JsonArray>();
+    for(JsonObject rec : records)
+    {
+        env_data dat;
+        dat.humidity = rec["humidity"];
+        dat.temperature = rec["temperature"];
+        dat.timestamp = rec["timestamp"];
+        env.push_back(dat);
+    }
+    Serial.println("[DataManager] environmental data loaded from SD.");
+    return env;
 }

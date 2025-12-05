@@ -7,7 +7,6 @@
 #include "RTClib.h"
 #include "Adafruit_SHT4x.h"
 
-
 // Globals
 GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display;
 RTC_PCF8563 rtc;
@@ -18,7 +17,7 @@ SPIClass hspi(HSPI);
 DataManager dataManager;
 NetworkManager *networkManager;
 PlotManager *plotManager;
-//Preferences preferences;
+// Preferences preferences;
 PetDataMap allPetData;
 std::vector<SL_Pet> allPets;
 
@@ -51,6 +50,8 @@ void initHardware()
   digitalWrite(SD_EN_PIN, HIGH);
   pinMode(SD_DET_PIN, INPUT_PULLUP);
 
+  pinMode(BUZZER_PIN, OUTPUT);
+
   pinMode(BATTERY_ENABLE_PIN, OUTPUT);
   digitalWrite(BATTERY_ENABLE_PIN, HIGH); // Enable battery monitoring
   Wire.setPins(I2C_SDA, I2C_SCL);
@@ -82,45 +83,62 @@ void initHardware()
   digitalWrite(LED_PIN, LOW);
 }
 
-void checkFactoryReset() {
-  // If Key 1 and Key 2 are held down at boot, wipe credentials
-  if (digitalRead(BUTTON_KEY1) == LOW && digitalRead(BUTTON_KEY2) == LOW) {
-      Serial.println("Factory Reset Triggered!");
-      display->fillScreen(GxEPD_WHITE);
-      display->setCursor(10, 50);
-      display->setTextColor(GxEPD_BLACK);
-      display->setTextSize(2);
-      display->print("Factory Reset...");
-      display->display();
-      //TODO: delete sd card files
-      //preferences.clear(); // Wipe NVS
-      delay(2000);
-      ESP.restart();
+void checkFactoryReset()
+{
+  const int chirpfrequency = 4000;
+  const int shortbeep = 100;
+  const int longbeep = 800;
+  // three chances to change mind
+  for (int i = 0; i < 3; i++)
+  {
+    if (digitalRead(BUTTON_KEY1) == LOW && digitalRead(BUTTON_KEY2) == LOW)
+      tone(BUZZER_PIN, chirpfrequency, shortbeep);
+    else
+      return;
+    delay(1000);
+  }
+  if (digitalRead(BUTTON_KEY1) == LOW && digitalRead(BUTTON_KEY2) == LOW)
+  {
+
+    tone(BUZZER_PIN, chirpfrequency, longbeep);
+    Serial.println("Factory Reset Triggered!");
+    // display->fillScreen(GxEPD_WHITE);
+    // display->setCursor(10, 50);
+    // display->setTextColor(GxEPD_BLACK);
+    // display->setTextSize(2);
+    // display->print("Factory Reset...");
+    // display->display();
+    dataManager.saveSecrets("", "", "", ""); // baleeted
+
+    // delay(2000);
+    ESP.restart();
   }
 }
 
 void setup()
 {
   initHardware();
-  //preferences.begin(NVS_NAMESPACE);
-
-  checkFactoryReset();
+  // preferences.begin(NVS_NAMESPACE);
   dataManager.begin(hspi);
+  checkFactoryReset();
+
   networkManager = new NetworkManager(&dataManager);
   plotManager = new PlotManager(display);
 
   // 1. Load Local Data from Micro SD
-  
+
   dataManager.loadData(allPetData);
 
   SL_Status status = dataManager.getStatus();
 
   sensors_event_t humidity, temp;
   sht4.getEvent(&humidity, &temp);
-  float currentTemp = temp.temperature;
-  float currentHumid = humidity.relative_humidity;
-
-  //int rangeIndex = preferences.getInt(NVS_PLOT_RANGE_KEY, 0);
+  env_data point;
+  point.temperature = temp.temperature;
+  point.humidity = humidity.relative_humidity;
+  point.timestamp = time(NULL);
+  dataManager.addEnvData(point);
+  // int rangeIndex = preferences.getInt(NVS_PLOT_RANGE_KEY, 0);
   int rangeIndex = dataManager.getPlotRange();
   rtc.begin();
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
@@ -138,7 +156,7 @@ void setup()
       if (rangeIndex < 0)
         rangeIndex = (int)Date_Range_Max - 1;
     }
-    //preferences.putInt(NVS_PLOT_RANGE_KEY, rangeIndex);
+    // preferences.putInt(NVS_PLOT_RANGE_KEY, rangeIndex);
     dataManager.savePlotRange(rangeIndex);
   }
 
@@ -155,13 +173,14 @@ void setup()
   if (!isViewUpdate)
   {
     networkManager->connectOrProvision(display);
-    
-    if(networkManager->syncTime(rtc)) wifiSuccess = true;
-    
+
+    if (networkManager->syncTime(rtc))
+      wifiSuccess = true;
+
     if (networkManager->initApi())
     {
       networkManager->getApi()->setDebug(true);
-      
+
       // Calculate how many days we are missing
       int daysToFetch = 30; // Default max
 
@@ -185,7 +204,7 @@ void setup()
         // Store pets to NVS
         if (!allPets.empty())
         {
-          //preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
+          // preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
           dataManager.savePets(allPets);
         }
         // Merge data
@@ -195,7 +214,7 @@ void setup()
           dataManager.mergeData(allPetData, pet.id.toInt(), records);
         }
         dataManager.saveData(allPetData);
-        //status = networkManager->getApi()->getLatestStatus();
+        // status = networkManager->getApi()->getLatestStatus();
         if (status.litter_level_percent > 0)
         {
           dataManager.saveStatus(status);
@@ -208,31 +227,33 @@ void setup()
     // If we are just updating the view (button1 or 2 press), try to load pets from NVS
     // so we have names for the charts without needing WiFi
     networkManager->initializeFromRtc(rtc);
-    //size_t len = preferences.getBytesLength(NVS_PETS_KEY);
-    //if (len > 0)
+    // size_t len = preferences.getBytesLength(NVS_PETS_KEY);
+    // if (len > 0)
     //{
-    //  allPets.resize(len / sizeof(Pet));
-    //  preferences.getBytes(NVS_PETS_KEY, allPets.data(), len);
-    //}
+    //   allPets.resize(len / sizeof(Pet));
+    //   preferences.getBytes(NVS_PETS_KEY, allPets.data(), len);
+    // }
     allPets = dataManager.getPets();
-    //status = dataManager.getStatus();
+    // status = dataManager.getStatus();
   }
 
   // 3. Render
-  plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, wifiSuccess, currentTemp, currentHumid);
+  plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, wifiSuccess, point.temperature, point.humidity);
 
   display->display();
   display->hibernate();
 
-  //check battery low, extend sleep duration if so
+  // check battery low, extend sleep duration if so
   int mv = analogReadMilliVolts(BATTERY_ADC_PIN);
   float battery_voltage = (mv / 1000.0) * 2;
 
   // 4. Sleep
   Serial.println("Sleeping...");
   uint64_t sleepInterval;
-  if(battery_voltage < 3.50)  sleepInterval = 1000000ull * 60ull * 60ull * 6ull; // 6hr
-  else sleepInterval = 1000000ull * 60ull * 60ull * 2ull; // 2hr
+  if (battery_voltage < 3.50)
+    sleepInterval = 1000000ull * 60ull * 60ull * 6ull; // 6hr
+  else
+    sleepInterval = 1000000ull * 60ull * 60ull * 2ull; // 2hr
   esp_sleep_enable_timer_wakeup(sleepInterval);
   // Wake up on Key 0, 1, or 2 (Low)
   esp_sleep_enable_ext1_wakeup(BUTTON_KEY0_MASK | BUTTON_KEY1_MASK | BUTTON_KEY2_MASK, ESP_EXT1_WAKEUP_ANY_LOW);
