@@ -86,7 +86,7 @@ void ScatterPlot::draw()
     drawAxes(xMin, xMax, yMin, yMax);
     plotDataPoints(xMin, xMax, yMin, yMax);
     drawLegend();
-    add_refresh_timestamp();
+    //add_refresh_timestamp();
 }
 
 void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)

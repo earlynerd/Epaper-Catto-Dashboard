@@ -106,22 +106,46 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     float battery_voltage = (mv / 1000.0) * 2;
     int16_t x = 0, y = 0, x1 = 0, y1 = 0;
     uint16_t w = 0, h = 0;
-    if (battery_voltage >= 4.2)
-    {
-        battery_voltage = 4.2;
-    }
-    char buffer[32];
 
-    // Draw Battery
-    sprintf(buffer, "Battery: %.2fV", battery_voltage);
-    _display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-    x = EPD_WIDTH - w - 15;
-    y = h * 3 / 2 + 4;
-    _display->setFont(NULL); // Use the provided font
-    _display->setTextSize(1);
-    _display->setTextColor(EPD_BLACK); // Use the provided color
-    _display->setCursor(x, y);
-    _display->print(buffer);
+    const float full_voltage = 4.20, empty_voltage = 3.20;
+    if (battery_voltage >= full_voltage)
+    {
+        battery_voltage = full_voltage;
+    }
+    if (battery_voltage < empty_voltage)
+        battery_voltage = empty_voltage;
+    char buffer[32];
+    int battery_percent = (int)(100.0 * (battery_voltage - empty_voltage) / (full_voltage - empty_voltage));
+// Draw Battery
+LinearGauge* batteryGauge;
+#if (EPD_SELECT == 1001)
+    batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_BLACK, EPD_WHITE);
+    
+#elif (EPD_SELECT == 1002)
+    if (battery_percent > 80)
+    {
+        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_GREEN, EPD_WHITE);
+    }
+    else if((battery_percent <=60) && (battery_percent > 20))
+    {
+        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_YELLOW, EPD_WHITE);
+    }
+    else batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_RED, EPD_WHITE);
+#endif
+    batteryGauge->setRange(0, 100, "");
+    batteryGauge->showLabel(false, "");
+    batteryGauge->draw(battery_percent);
+    _display->drawLine(EPD_WIDTH - 16, 9, EPD_WIDTH-16, 15, EPD_BLACK);        //make it look like a battery
+    _display->drawLine(EPD_WIDTH - 15, 9, EPD_WIDTH-15, 15, EPD_BLACK);
+    //sprintf(buffer, "Battery: %.2fV", battery_voltage);
+    //_display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
+    //x = EPD_WIDTH - w - 15;
+    //y = h * 3 / 2 + 4;
+    //_display->setFont(NULL); // Use the provided font
+    //_display->setTextSize(1);
+    //_display->setTextColor(EPD_BLACK); // Use the provided color
+    //_display->setCursor(x, y);
+    //_display->print(buffer);
 
     // Draw Update Time
     struct tm timeinfo;
@@ -144,7 +168,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     _display->setFont(NULL); // Use the provided font
     _display->setTextSize(1);
     _display->setTextColor(EPD_BLACK); // Use the provided color
-    _display->setCursor(x, h / 2);
+    _display->setCursor(x, EPD_HEIGHT - h - 2);
     _display->print(strftime_buf);
 
     if (status.litter_level_percent > 0)

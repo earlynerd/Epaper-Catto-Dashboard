@@ -3,6 +3,7 @@
 #include <math.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
+#include "config.h"
 
 // --- Base Widget ---
 Widget::Widget(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
@@ -38,7 +39,7 @@ void LinearGauge::draw(float value) {
     _gfx->fillRect(_x, _y, _w, _h, _cBg);
 
     // 2. Draw Outline
-    _gfx->drawRect(_x, _y, _w, _h, _cFg);
+    _gfx->drawRect(_x, _y, _w, _h, EPD_BLACK);
 
     bool isVertical = _h > _w;
     // 3. Calculate Fill Width

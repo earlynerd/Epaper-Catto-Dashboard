@@ -61,9 +61,9 @@ public:
     time_t getLatestTimestamp(const PetDataMap &petData);
 
 private:
-    const char* _filename = "/pet_data.json";
-    const char* _status_filename = "/status.json";
-    const char* _pets_filename = "/pets.json";
+    String _filename = "/pet_data.json";
+    String _status_filename = "/status.json";
+    String _pets_filename = "/pets.json";
     const char* _secrets_filename = "/secrets.json";
     const char* _tz_filename = "/timezone.json";
     const char* _config_filename = "/config.json";

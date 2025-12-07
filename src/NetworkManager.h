@@ -50,6 +50,8 @@ private:
     bool _ispetkit = false;
     bool getTimezoneAndSync(RTC_PCF8563& rtc);
     DataManager* _dataManager;
+    GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *_display;
+    void printProvMessage();
 };
 
 #endif

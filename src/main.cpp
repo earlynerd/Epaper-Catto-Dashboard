@@ -102,12 +102,7 @@ void checkFactoryReset()
 
     tone(BUZZER_PIN, chirpfrequency, longbeep);
     Serial.println("Factory Reset Triggered!");
-    // display->fillScreen(GxEPD_WHITE);
-    // display->setCursor(10, 50);
-    // display->setTextColor(GxEPD_BLACK);
-    // display->setTextSize(2);
-    // display->print("Factory Reset...");
-    // display->display();
+
     dataManager.saveSecrets("", "", "", ""); // baleeted
 
     // delay(2000);
@@ -118,14 +113,12 @@ void checkFactoryReset()
 void setup()
 {
   initHardware();
-  // preferences.begin(NVS_NAMESPACE);
   dataManager.begin(hspi);
   checkFactoryReset();
 
   networkManager = new NetworkManager(&dataManager);
   plotManager = new PlotManager(display);
 
-  // 1. Load Local Data from Micro SD
 
   dataManager.loadData(allPetData);
 
@@ -138,7 +131,6 @@ void setup()
   point.humidity = humidity.relative_humidity;
   point.timestamp = time(NULL);
   dataManager.addEnvData(point);
-  // int rangeIndex = preferences.getInt(NVS_PLOT_RANGE_KEY, 0);
   int rangeIndex = dataManager.getPlotRange();
   rtc.begin();
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
@@ -156,7 +148,6 @@ void setup()
       if (rangeIndex < 0)
         rangeIndex = (int)Date_Range_Max - 1;
     }
-    // preferences.putInt(NVS_PLOT_RANGE_KEY, rangeIndex);
     dataManager.savePlotRange(rangeIndex);
   }
 
@@ -183,7 +174,7 @@ void setup()
 
       // Calculate how many days we are missing
       int daysToFetch = 30; // Default max
-
+      
       time_t latestTimestamp = dataManager.getLatestTimestamp(allPetData);
 
       if (latestTimestamp > 0)
@@ -201,10 +192,8 @@ void setup()
       {
         allPets = networkManager->getApi()->getUnifiedPets();
         status = networkManager->getApi()->getUnifiedStatus();
-        // Store pets to NVS
         if (!allPets.empty())
         {
-          // preferences.putBytes(NVS_PETS_KEY, allPets.data(), allPets.size() * sizeof(SL_Pet));
           dataManager.savePets(allPets);
         }
         // Merge data
@@ -214,7 +203,6 @@ void setup()
           dataManager.mergeData(allPetData, pet.id.toInt(), records);
         }
         dataManager.saveData(allPetData);
-        // status = networkManager->getApi()->getLatestStatus();
         if (status.litter_level_percent > 0)
         {
           dataManager.saveStatus(status);
