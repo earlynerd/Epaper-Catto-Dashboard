@@ -203,7 +203,7 @@ void DataManager::saveStatus(const SL_Status &status)
     File file = SD.open(_status_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] Status saved to SD.");
@@ -219,7 +219,7 @@ void DataManager::savePlotRange(int range)
     File file = SD.open(_config_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] Config.json saved to SD.");
@@ -303,7 +303,7 @@ void DataManager::savePets(std::vector<SL_Pet> pets)
     File file = SD.open(_pets_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] Pets saved to SD.");
@@ -328,7 +328,7 @@ void DataManager::saveSecrets(String ssid, String wifi_pass, String SL_Account, 
     File file = SD.open(_secrets_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] Secrets saved to SD.");
@@ -483,7 +483,7 @@ void DataManager::saveTimezone(String tz, String region)
     File file = SD.open(_tz_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] Timezone saved to SD.");
@@ -537,7 +537,7 @@ void DataManager::saveEnvData(std::vector<env_data> &env)
     File file = SD.open(_env_data_filename, FILE_WRITE);
     if (file)
     {
-        serializeJson(doc, file);
+        serializeJsonPretty(doc, file);
         file.flush();
         file.close();
         Serial.println("[DataManager] ENV data saved to SD.");

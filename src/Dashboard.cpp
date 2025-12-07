@@ -59,13 +59,22 @@ void LinearGauge::draw(float value) {
 
     // 5. Inverted Text Label (Pixel-by-Pixel Analysis)
     if (_showLabel) {
-        String valStr = String(value, 1);
+        String valStr = String(value, 0);
         valStr = _label + valStr + _units;
         int16_t x1, y1;
         uint16_t w, h;
-        _gfx->setFont(&FreeSansBold9pt7b);
-        _gfx->setTextSize(1);
+        GFXfont* fon = (GFXfont*)&FreeSansBold9pt7b;
+        int textsize = 1;
+        _gfx->setFont(fon);
+        _gfx->setTextSize(textsize);
         _gfx->getTextBounds(valStr, 0, 0, &x1, &y1, &w, &h);
+        if((w > _w) || (h > _h)) {
+            fon = NULL;
+            textsize = 0;
+            _gfx->setFont(fon);
+            _gfx->setTextSize(textsize);
+            _gfx->getTextBounds(valStr, 0, 0, &x1, &y1, &w, &h);
+        }
         
         // Calculate where the text *should* go on the screen (centered)
         int16_t textScreenX = _x + (_w - w) / 2;
@@ -74,8 +83,8 @@ void LinearGauge::draw(float value) {
         // Create a temporary 1-bit canvas just for the text
         // This acts as a bitmap mask
         GFXcanvas1 textCanvas(w, h);
-        textCanvas.setFont(&FreeSansBold9pt7b);
-        textCanvas.setTextSize(1);
+        textCanvas.setFont(fon);
+        textCanvas.setTextSize(textsize);
         textCanvas.setTextColor(1); // "On" pixels
         // Adjust cursor so the text fills the canvas tightly (negating the bounds offset)
         textCanvas.setCursor(-x1, -y1); 
@@ -100,6 +109,7 @@ void LinearGauge::draw(float value) {
                     bool overBar = (absX >= _x + 2) && (absX < barLimitX);
                     
                     uint16_t finalColor = overBar ? _cBg : _cFg;
+                    if(_cFg == EPD_YELLOW) finalColor = EPD_BLACK;
                     _gfx->drawPixel(absX, absY, finalColor);
                 }
             }

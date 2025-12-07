@@ -22,10 +22,10 @@ PetDataMap allPetData;
 std::vector<SL_Pet> allPets;
 
 DateRangeInfo dateRangeInfo[] = {
-    {LAST_7_DAYS, "Last 7 Days", 7 * 86400L},
-    {LAST_30_DAYS, "Last 30 Days", 30 * 86400L},
-    {LAST_90_DAYS, "Last 90 Days", 90 * 86400L},
-    {LAST_365_DAYS, "Last 365 Days", 365 * 86400L},
+    {LAST_7_DAYS, "7 Days", 7 * 86400L},
+    {LAST_30_DAYS, "30 Days", 30 * 86400L},
+    {LAST_90_DAYS, "90 Days", 90 * 86400L},
+    {LAST_365_DAYS, "365 Days", 365 * 86400L},
 };
 
 void initHardware()
@@ -117,20 +117,12 @@ void setup()
   checkFactoryReset();
 
   networkManager = new NetworkManager(&dataManager);
-  plotManager = new PlotManager(display);
-
+  plotManager = new PlotManager(display, &dataManager);
 
   dataManager.loadData(allPetData);
 
   SL_Status status = dataManager.getStatus();
 
-  sensors_event_t humidity, temp;
-  sht4.getEvent(&humidity, &temp);
-  env_data point;
-  point.temperature = temp.temperature;
-  point.humidity = humidity.relative_humidity;
-  point.timestamp = time(NULL);
-  dataManager.addEnvData(point);
   int rangeIndex = dataManager.getPlotRange();
   rtc.begin();
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1)
@@ -174,7 +166,7 @@ void setup()
 
       // Calculate how many days we are missing
       int daysToFetch = 30; // Default max
-      
+
       time_t latestTimestamp = dataManager.getLatestTimestamp(allPetData);
 
       if (latestTimestamp > 0)
@@ -209,6 +201,13 @@ void setup()
         }
       }
     }
+    sensors_event_t humidity, temp;
+    sht4.getEvent(&humidity, &temp);
+    env_data point;
+    point.temperature = temp.temperature;
+    point.humidity = humidity.relative_humidity;
+    point.timestamp = time(NULL);
+    dataManager.addEnvData(point);
   }
   else
   {
@@ -226,7 +225,7 @@ void setup()
   }
 
   // 3. Render
-  plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, wifiSuccess, point.temperature, point.humidity);
+  plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, wifiSuccess);
 
   display->display();
   display->hibernate();

@@ -1,9 +1,9 @@
 #include "PlotManager.h"
+#include "Fonts/FreeMono9pt7b.h"
+PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp, DataManager* datamanager)
+    : _display(disp), _dataManager(datamanager) {}
 
-PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp)
-    : _display(disp) {}
-
-void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, bool wifiSuccess, float temp, float humidity)
+void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, bool wifiSuccess)
 {
     _display->fillScreen(GxEPD_WHITE);
 
@@ -52,7 +52,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     {
         Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
         histInterval.setTitle("Interval (Hours)");
-        histInterval.setBinCount(16);
+        histInterval.setBinCount(18);
         histInterval.setNormalization(true);
         for (int i = 0; i < numPets; ++i)
         {
@@ -60,9 +60,10 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             // histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
         }
         histInterval.plot();
+
         Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
         histDuration.setTitle("Duration (Minutes)");
-        histDuration.setBinCount(16);
+        histDuration.setBinCount(18);
         histDuration.setNormalization(true);
         for (int i = 0; i < numPets; ++i)
         {
@@ -72,7 +73,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     }
     else
     {
-        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() * 3 / 4, _display->height() / 4);
+        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() *2 /3, _display->height() / 4);
         histInterval.setTitle("Interval (Hours)");
         if (pets.size() == 1)
             histInterval.setBinCount(32);
@@ -102,6 +103,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     plot.draw();
 
     // --- Status Bar ---
+    // Draw Battery
     int mv = analogReadMilliVolts(BATTERY_ADC_PIN);
     float battery_voltage = (mv / 1000.0) * 2;
     int16_t x = 0, y = 0, x1 = 0, y1 = 0;
@@ -116,59 +118,51 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         battery_voltage = empty_voltage;
     char buffer[32];
     int battery_percent = (int)(100.0 * (battery_voltage - empty_voltage) / (full_voltage - empty_voltage));
-// Draw Battery
-LinearGauge* batteryGauge;
+
+    LinearGauge *batteryGauge;
 #if (EPD_SELECT == 1001)
-    batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_BLACK, EPD_WHITE);
-    
+    batteryGauge = new LinearGauge(_display, _display->width() - 15 - 60, 2, 59, 22, EPD_BLACK, EPD_WHITE);
 #elif (EPD_SELECT == 1002)
     if (battery_percent > 80)
     {
-        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_GREEN, EPD_WHITE);
+        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 60, 2, 59, 22, EPD_GREEN, EPD_WHITE);
     }
-    else if((battery_percent <=60) && (battery_percent > 20))
+    else if ((battery_percent <= 60) && (battery_percent > 20))
     {
-        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_YELLOW, EPD_WHITE);
+        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 60, 2, 59, 22, EPD_YELLOW, EPD_WHITE);
     }
-    else batteryGauge = new LinearGauge(_display, _display->width() - 15 - 30, 5, 29, 15, EPD_RED, EPD_WHITE);
+    else
+        batteryGauge = new LinearGauge(_display, _display->width() - 15 - 60, 2, 59, 22, EPD_RED, EPD_WHITE);
 #endif
-    batteryGauge->setRange(0, 100, "");
-    batteryGauge->showLabel(false, "");
+    batteryGauge->setRange(0, 100, "% ");
+    batteryGauge->showLabel(true, " ");
     batteryGauge->draw(battery_percent);
-    _display->drawLine(EPD_WIDTH - 16, 9, EPD_WIDTH-16, 15, EPD_BLACK);        //make it look like a battery
-    _display->drawLine(EPD_WIDTH - 15, 9, EPD_WIDTH-15, 15, EPD_BLACK);
-    //sprintf(buffer, "Battery: %.2fV", battery_voltage);
-    //_display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-    //x = EPD_WIDTH - w - 15;
-    //y = h * 3 / 2 + 4;
-    //_display->setFont(NULL); // Use the provided font
-    //_display->setTextSize(1);
-    //_display->setTextColor(EPD_BLACK); // Use the provided color
-    //_display->setCursor(x, y);
-    //_display->print(buffer);
+    _display->drawLine(EPD_WIDTH - 16, 7, EPD_WIDTH - 16, 18, EPD_BLACK); // make it look like a battery
+    _display->drawLine(EPD_WIDTH - 15, 7, EPD_WIDTH - 15, 18, EPD_BLACK);
+    _display->drawLine(EPD_WIDTH - 14, 7, EPD_WIDTH - 14, 18, EPD_BLACK);
+    _display->drawLine(EPD_WIDTH - 15, 9, EPD_WIDTH - 15, 16, EPD_WHITE);
+    _display->drawLine(EPD_WIDTH - 16, 9, EPD_WIDTH - 16, 16, EPD_WHITE);
+    _display->drawLine(EPD_WIDTH - 17, 9, EPD_WIDTH - 17, 16, EPD_WHITE);
 
     // Draw Update Time
     struct tm timeinfo;
     char strftime_buf[64]; // Buffer to hold the formatted string
 
-    x = 0;
-    y = 0;
-    x1 = 0;
-    y1 = 0;
-    w = 0;
-    h = 0;
+    x = 0; y = 0;
+    x1 = 0; y1 = 0;
+    w = 0; h = 0;
 
     time(&now);                   // Get current epoch time
     localtime_r(&now, &timeinfo); // Convert to struct tm
     strftime(strftime_buf, sizeof(strftime_buf), "%m/%d/%y %H:%M", &timeinfo);
-    _display->setFont(NULL);
-    _display->setTextSize(1);
+    _display->setFont(&FreeMono9pt7b);
+    _display->setTextSize(0);
     _display->getTextBounds(strftime_buf, x, y, &x1, &y1, &w, &h);
     x = EPD_WIDTH - 15 - w;
-    _display->setFont(NULL); // Use the provided font
-    _display->setTextSize(1);
+    _display->setFont(&FreeMono9pt7b); // Use the provided font
+    _display->setTextSize(0);
     _display->setTextColor(EPD_BLACK); // Use the provided color
-    _display->setCursor(x, EPD_HEIGHT - h - 2);
+    _display->setCursor(29, h / 2 + 12);
     _display->print(strftime_buf);
 
     if (status.litter_level_percent > 0)
@@ -176,41 +170,57 @@ LinearGauge* batteryGauge;
 
         if (status.api_type == PETKIT)
         {
-            _display->setFont(NULL);
-            _display->setTextSize(0);
-            _display->setTextColor(EPD_BLACK);
-
-            char buffer[32];
-            int16_t x = EPD_WIDTH * 3 / 4, y = 2, x1, y1;
-            uint16_t w, h;
-            sprintf(buffer, "Litter: %d%%", status.litter_level_percent);
-            _display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-            x = EPD_WIDTH - 20 - w - 120;
-            _display->setCursor(x, h / 2);
-            _display->print(buffer);
-            _display->setCursor(x, 3 * h / 2 + 4);
-            if (status.is_drawer_full)
-            {
-                _display->print("FULL");
-            }
+            LinearGauge *litterGauge;
+#if (EPD_SELECT == 1001)
+            litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_BLACK, EPD_WHITE);
+#else
+            if (status.litter_level_percent > 90)
+                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_GREEN, EPD_WHITE);
+            else if (status.litter_level_percent > 80)
+                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_YELLOW, EPD_WHITE);
             else
-            {
-                _display->print("Box OK");
-            }
+                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_RED, EPD_WHITE);
+#endif
+
+            litterGauge->setRange(0, 100, "%");
+            litterGauge->showLabel(true, "Litter: ");
+            litterGauge->draw(status.litter_level_percent);
+       
         }
         else // whisker
         {
-            //_display->setCursor(x, 3 * h / 2 + 4);
-            // sprintf(buffer, "Waste: %d%%", status.waste_level_percent);
-            //_display->print(buffer);
-            LinearGauge litterGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
-            litterGauge.setRange(0, 100, "%");
-            litterGauge.showLabel(true, "Litter: ");
-            litterGauge.draw(status.litter_level_percent);
-            LinearGauge wasteGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
-            wasteGauge.setRange(0, 100, "%");
-            wasteGauge.showLabel(true, "Waste: ");
-            wasteGauge.draw(status.waste_level_percent);
+            
+            
+            
+            LinearGauge *litterGauge;
+            LinearGauge *wasteGauge;
+#if (EPD_SELECT == 1002)
+            if (status.litter_level_percent > 70.0)
+                litterGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_GREEN, EPD_WHITE);
+            else if (status.litter_level_percent > 30.0)
+                litterGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_YELLOW, EPD_WHITE);
+            else
+                litterGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_RED, EPD_WHITE);
+
+            if (status.waste_level_percent < 30.0)
+                wasteGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_GREEN, EPD_WHITE);
+            else if (status.waste_level_percent < 70.0)
+                wasteGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_YELLOW, EPD_WHITE);
+            else
+                wasteGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_RED, EPD_WHITE);
+#else
+            litterGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
+            wasteGauge = new LinearGauge(_display, _display->width() * 3 / 4 + 5, _display->height() - 15 - (_display->height() / 4 - 20 - 30) / 2, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
+#endif
+            // LinearGauge litterGauge(_display, _display->width() * 3 / 4 + 5, _display->height() * 3 / 4 + 20, _display->width() / 4 - 20, (_display->height() / 4 - 20 - 30) / 2, EPD_BLACK, EPD_WHITE);
+            litterGauge->setRange(0, 100, "%");
+            litterGauge->showLabel(true, "Litter: ");
+            litterGauge->draw(status.litter_level_percent);
+
+            wasteGauge->setRange(0, 100, "%");
+            wasteGauge->showLabel(true, "Waste: ");
+            wasteGauge->draw(status.waste_level_percent);
+            
         }
     }
 }

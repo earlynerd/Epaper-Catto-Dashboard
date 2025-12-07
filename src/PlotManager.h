@@ -6,21 +6,20 @@
 #include "ScatterPlot.h"
 #include "histogram.h"
 #include "Dashboard.h"
+#include "DataManager.h"
 
 class PlotManager {
 public:
-    PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display);
+    PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display, DataManager* datamanager);
     
     void renderDashboard(const std::vector<SL_Pet> &pets, 
                          PetDataMap &allPetData, 
                          const DateRangeInfo &range,
                          const SL_Status &status,
-                         bool wifiSuccess,
-                         float temp,
-                         float humidity);
+                         bool wifiSuccess);
 private:
     GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *_display;
-    
+    DataManager* _dataManager;
     // Constants for colors, layout, etc.
     struct ColorPair {
         uint16_t color;

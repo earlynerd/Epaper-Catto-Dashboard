@@ -69,11 +69,15 @@ void ScatterPlot::draw()
     float yRange = yMax - yMin;
     xMin -= xRange * 0.05;
     xMax += xRange * 0.05;
-    yMin -= yRange * 0.40;
+    yMin -= yRange * 0.15;
     yMax += yRange * 0.15;
 
-    
-    
+    if(_series.size() < 2)
+    {
+     yMin = yMin* 0.9;
+     yMax = yMax * 1.1;
+    }
+
     if (xMax == xMin) { xMax += 1.0; xMin -= 1.0; }
     if (yMax == yMin) { yMax += 1.0; yMin -= 1.0; }
     //yMin = 0;
@@ -209,20 +213,27 @@ void ScatterPlot::plotDataPoints(float xMin, float xMax, float yMin, float yMax)
 
 void ScatterPlot::drawLegend() {
     int markerw = 15, markerh = 10;
-    int16_t legendX = _x + MARGIN_LEFT;
-    int16_t legendY = _y + MARGIN_TOP/2 - markerh/2; // Top-left legend
+    int16_t legendX = _x + MARGIN_LEFT + 5;
+    int16_t legendY = _y + MARGIN_TOP + markerh; // Top-left legend
     int16_t spacing = 10;
 
     display->setFont(&FreeSans9pt7b);
     display->setTextSize(0);
     int16_t  x1 = 0, y1 = 0;
     uint16_t w = 0, h = 0;
-    
+    int16_t widthsum = 0;
     for (const auto& s : _series) {
         display->getTextBounds(s.name, legendX, legendY, &x1, &y1, &w, &h);
-        drawMarker(legendX + markerw/2, legendY + markerh/2, s.color, s.background);
+        widthsum += w;
+    }
+    //display->getTextBounds(_series.front().name, legendX, legendY, &x1, &y1, &w, &h);
+    display->fillRect(legendX, legendY, widthsum + _series.size() *(markerw +  spacing+3), h+16, EPD_WHITE);
+    display->drawRect(legendX, legendY, widthsum + _series.size() *(markerw +  spacing+3), h+16, EPD_BLACK);
+    for (const auto& s : _series) {
+        display->getTextBounds(s.name, legendX, legendY, &x1, &y1, &w, &h);
+        drawMarker(legendX + markerw/2, legendY + markerh+5, s.color, s.background);
         //display->fillRect(legendX, legendY, markerw, markerh, s.color);
-        display->setCursor(legendX + markerw + 5,  _y + MARGIN_TOP/2 + h/2);
+        display->setCursor(legendX + markerw,  legendY + markerh*2);
         display->print(s.name);
 
         // Move X for next legend item
