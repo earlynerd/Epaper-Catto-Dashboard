@@ -1,7 +1,10 @@
 # Epaper Cat Tracking Dashboard
 ![image of epaper dashboard using E1002 and Petkit account](resources/dashboard_1002_petkit.jpg)
-![image of epaper dashboard using E1001 and Whisker account](resources/dashboard_1001_Whisker.jpg)
-Simple Multi-Cat Dashbord built with Seeedstudio reterminal epaper displays E1001 or E1002. Compatible with PetKit smart litterboxes, and Whisker Litter Robot 4.
+E1002 Color display, Petkit account
+![image of epaper dashboard using E1001 and Whisker account](resources/dashboard_1001_whisker.jpg)
+E1001 Black and white epaper, Whisker account
+
+## Simple Multi-Cat Smart Litterbox Dashboard 
 
 It collects data directly from petkit/whisker servers to help track pet weight and liitterbox usage patterns, and display litterbox status info. 
 
@@ -16,3 +19,8 @@ Whisker accounts without the paid tier have access to only 7 days of historical 
 All settings and history data are read from and recorded to the micro SD card. So, be sure to install one. Must be 64GB or below, formatted FAT32.
 
 The device will host a captive portal to allow you to select your wifi access point and enter the password, and provide your petkit or whisker account login. Alternatively, after first boot, you can eject the micro SD and edit "secrets.json" to provide these details.  
+
+## Compatibility
+* Seeedstudio reterminal epaper displays E1001 or E1002
+* All PetKit smart litterboxes (only Pura X tested...)
+* Whisker Litter Robot 4 (possibly others, but untested).
