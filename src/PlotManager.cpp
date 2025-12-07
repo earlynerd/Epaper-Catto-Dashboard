@@ -1,5 +1,6 @@
 #include "PlotManager.h"
 #include "Fonts/FreeMono9pt7b.h"
+#include "Fonts/FreeMonoBold9pt7b.h"
 PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp, DataManager* datamanager)
     : _display(disp), _dataManager(datamanager) {}
 
@@ -50,9 +51,9 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     // --- Draw Histograms ---
     if (status.api_type == PETKIT)
     {
-        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
+        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() *3/ 8, _display->height() / 4);
         histInterval.setTitle("Interval (Hours)");
-        histInterval.setBinCount(18);
+        histInterval.setBinCount(12);
         histInterval.setNormalization(true);
         for (int i = 0; i < numPets; ++i)
         {
@@ -61,9 +62,9 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         }
         histInterval.plot();
 
-        Histogram histDuration(_display, _display->width() / 2, _display->height() * 3 / 4, _display->width() / 2, _display->height() / 4);
+        Histogram histDuration(_display, _display->width() *3/ 8, _display->height() * 3 / 4, _display->width() *3/ 8, _display->height() / 4);
         histDuration.setTitle("Duration (Minutes)");
-        histDuration.setBinCount(18);
+        histDuration.setBinCount(12);
         histDuration.setNormalization(true);
         for (int i = 0; i < numPets; ++i)
         {
@@ -71,9 +72,9 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         }
         histDuration.plot();
     }
-    else
+    else       //whisker
     {
-        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() *2 /3, _display->height() / 4);
+        Histogram histInterval(_display, 0, _display->height() * 3 / 4, _display->width() *3 /4, _display->height() / 4);
         histInterval.setTitle("Interval (Hours)");
         if (pets.size() == 1)
             histInterval.setBinCount(32);
@@ -171,21 +172,80 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         if (status.api_type == PETKIT)
         {
             LinearGauge *litterGauge;
+            int litterGauge_x = (_display->width() *3/4) + 10 ;     //3/4 of the way down, plus add the histogram top padding for alignment
+            int litterGauge_y = (_display->height() * 3/4) + 20;    //3/4 of the way over, plus the histogram left padding
+            int litterGauge_w = _display->width() - litterGauge_x - 15;                   //1/4 of the vertical, minus both left and right padding
+            int litterGauge_h = (_display->height()/4 - 20 - 15 - 15)/2;    //1/4 of hight minus histogram paddings and the spacing between this gauge and the status box
+
 #if (EPD_SELECT == 1001)
-            litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_BLACK, EPD_WHITE);
+            litterGauge = new LinearGauge(_display, litterGauge_x , litterGauge_y, litterGauge_w, litterGauge_h, EPD_BLACK, EPD_WHITE);
 #else
             if (status.litter_level_percent > 90)
-                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_GREEN, EPD_WHITE);
+                litterGauge = new LinearGauge(_display, litterGauge_x , litterGauge_y, litterGauge_w, litterGauge_h, EPD_GREEN, EPD_WHITE);
             else if (status.litter_level_percent > 80)
-                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_YELLOW, EPD_WHITE);
+                litterGauge = new LinearGauge(_display,  litterGauge_x , litterGauge_y, litterGauge_w, litterGauge_h, EPD_YELLOW, EPD_WHITE);
             else
-                litterGauge = new LinearGauge(_display, _display->width() - 15 - 40 - 160, 2, 120, 22, EPD_RED, EPD_WHITE);
+                litterGauge = new LinearGauge(_display, litterGauge_x , litterGauge_y, litterGauge_w, litterGauge_h, EPD_RED, EPD_WHITE);
 #endif
 
             litterGauge->setRange(0, 100, "%");
             litterGauge->showLabel(true, "Litter: ");
             litterGauge->draw(status.litter_level_percent);
-       
+            int16_t statusBox_x = litterGauge_x;
+            int16_t statusBox_y = litterGauge_y + litterGauge_h + 15;
+            int16_t statusBox_w = litterGauge_w;
+            int16_t statusBox_h = litterGauge_h;
+            _display->drawRect(statusBox_x, statusBox_y, statusBox_w, statusBox_h, EPD_BLACK );
+            int16_t x = statusBox_x, y=statusBox_y, x1, y1;
+            uint16_t w,h;
+            if(status.is_drawer_full == true)
+            {
+                _display->setFont(&FreeMonoBold9pt7b);
+                _display->setTextSize(1);
+                _display->setTextColor(EPD_WHITE);
+#if (EPD_SELECT == 1001)
+                _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, EPD_BLACK );
+#else
+                _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, EPD_RED );
+#endif
+                char statusString[] = "Box FULL";
+                _display->getTextBounds(statusString, x,y, &x1, &y1, &w, &h);
+                _display->setCursor(statusBox_x + statusBox_w/2 - w/2 + statusBox_x-x1, statusBox_y + statusBox_h/2 - h/2 + statusBox_y - y1);
+                _display->print(statusString );
+            }
+            else if(status.litter_level_percent < 60)
+            {
+                _display->setFont(&FreeMonoBold9pt7b);
+                _display->setTextSize(1);
+                _display->setTextColor(EPD_WHITE);
+#if (EPD_SELECT == 1001)
+                _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, EPD_BLACK );
+#else
+                _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, EPD_RED );
+#endif
+                char statusString[] = "Litter LOW";
+                _display->getTextBounds(statusString, x,y, &x1, &y1, &w, &h);
+                _display->setCursor(statusBox_x + statusBox_w/2 - w/2 + statusBox_x-x1, statusBox_y + statusBox_h/2 - h/2 + statusBox_y - y1);
+                _display->print(statusString );
+            }
+            else
+            {
+                _display->setFont(&FreeMonoBold9pt7b);
+                _display->setTextSize(1);
+                
+#if (EPD_SELECT == 1001)
+                
+                _display->setTextColor(EPD_BLACK);
+#else
+                _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, EPD_GREEN );
+                _display->setTextColor(EPD_WHITE);
+#endif  
+                char statusString[] = "Box OK";
+                _display->getTextBounds(statusString, x,y, &x1, &y1, &w, &h);
+                _display->setCursor(statusBox_x + statusBox_w/2 - w/2 + statusBox_x-x1, statusBox_y + statusBox_h/2 - h/2 + statusBox_y - y1);
+                _display->print(statusString );
+                
+            }
         }
         else // whisker
         {
