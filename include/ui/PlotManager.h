@@ -6,7 +6,10 @@
 #include "ui/ScatterPlot.h"
 #include "ui/Histogram.h"
 #include "ui/Widget.h"
+#include "ui/StatusBox.h"
+#include "ui/TextLabel.h"
 #include "core/DataManager.h"
+#include "ui/PlotDataTypes.h"
 
 class PlotManager {
 public:
@@ -21,10 +24,6 @@ private:
     GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *_display;
     DataManager* _dataManager;
     // Constants for colors, layout, etc.
-    struct ColorPair {
-        uint16_t color;
-        uint16_t background;
-    };
     const std::vector<ColorPair> _petColors = {
         {EPD_RED, EPD_YELLOW}, {EPD_BLUE, EPD_BLACK}, 
         {EPD_GREEN, EPD_YELLOW}, {EPD_BLACK, EPD_WHITE}

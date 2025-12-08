@@ -220,15 +220,24 @@ void App::renderView(int rangeIndex, const SL_Status& status, bool wifiSuccess) 
 void App::enterSleep() {
   Serial.println("Sleeping...");
   
+  // Load Runtime Config
+  SystemConfig sysConfig = dataManager.getSystemConfig();
+
   // check battery low, extend sleep duration if so
   int mv = analogReadMilliVolts(Config::Pins::BATTERY_ADC);
   float battery_voltage = (mv / 1000.0) * 2;
   
-  uint64_t sleepInterval;
-  if (battery_voltage < 3.50)
-    sleepInterval = 1000000ull * 60ull * 60ull * 6ull; // 6hr
+  uint64_t sleepInterval; // needs to be in microseconds
+  if (battery_voltage < sysConfig.battery_low_threshold_v)
+  {
+      Serial.printf("Battery Low (%.2fV < %.2fV). Sleeping for %d min.\n", battery_voltage, sysConfig.battery_low_threshold_v, sysConfig.sleep_interval_low_batt_min);
+      sleepInterval = 1000000ull * 60ull * (uint64_t)sysConfig.sleep_interval_low_batt_min; 
+  }
   else
-    sleepInterval = 1000000ull * 60ull * 60ull * 2ull; // 2hr
+  {
+      Serial.printf("Battery OK (%.2fV). Sleeping for %d min.\n", battery_voltage, sysConfig.sleep_interval_min);
+      sleepInterval = 1000000ull * 60ull * (uint64_t)sysConfig.sleep_interval_min; 
+  }
     
   esp_sleep_enable_timer_wakeup(sleepInterval);
   // Wake up on Key 0, 1, or 2 (Low)

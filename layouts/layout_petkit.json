@@ -1,0 +1,76 @@
+{
+    "widgets": [
+        {
+            "type": "ScatterPlot",
+            "x": 0,
+            "y": 0,
+            "w": 800,
+            "h": 360,
+            "title": "Weight (lb) - %s",
+            "dataSource": "scatter",
+            "min": 0,
+            "max": 0
+        },
+        {
+            "type": "Histogram",
+            "x": 0,
+            "y": 360,
+            "w": 300,
+            "h": 120,
+            "title": "Interval (Hours)",
+            "dataSource": "interval",
+            "min": 0,
+            "max": 0
+        },
+        {
+            "type": "Histogram",
+            "x": 300,
+            "y": 360,
+            "w": 300,
+            "h": 120,
+            "title": "Duration (Minutes)",
+            "dataSource": "duration",
+            "min": 0,
+            "max": 0
+        },
+        {
+            "type": "LinearGauge",
+            "x": 725,
+            "y": 2,
+            "w": 59,
+            "h": 22,
+            "title": "",
+            "dataSource": "battery",
+            "min": 0,
+            "max": 100
+        },
+        {
+            "type": "LinearGauge",
+            "x": 610,
+            "y": 380,
+            "w": 175,
+            "h": 38,
+            "title": "Litter: ",
+            "dataSource": "litter",
+            "min": 0,
+            "max": 100
+        },
+        {
+            "type": "StatusBox",
+            "x": 610,
+            "y": 427,
+            "w": 175,
+            "h": 38,
+            "dataSource": "petkit_status"
+        },
+        {
+            "type": "TextLabel",
+            "x": 29,
+            "y": 8,
+            "w": 200,
+            "h": 20,
+            "title": "%m/%d %H:%M",
+            "dataSource": "datetime"
+        }
+    ]
+}

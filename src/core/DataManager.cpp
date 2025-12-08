@@ -608,3 +608,141 @@ std::vector<env_data> DataManager::getEnvData()
     Serial.println("[DataManager] environmental data loaded from SD.");
     return env;
 }
+
+void DataManager::saveSystemConfig(const SystemConfig &config)
+{
+    JsonDocument doc;
+    JsonObject root = doc.to<JsonObject>();
+    root["sleep_interval_min"] = config.sleep_interval_min;
+    root["sleep_interval_low_batt_min"] = config.sleep_interval_low_batt_min;
+    root["battery_low_threshold_v"] = config.battery_low_threshold_v;
+
+    File file = SD.open(_system_config_filename, FILE_WRITE);
+    if (file)
+    {
+        serializeJsonPretty(doc, file);
+        file.flush();
+        file.close();
+        Serial.println("[DataManager] System Config saved to SD.");
+    }
+}
+
+SystemConfig DataManager::getSystemConfig()
+{
+    SystemConfig config; // Defaults instantiated
+    
+    if (!SD.exists(_system_config_filename))
+    {
+        Serial.println("[DataManager] No System Config found. Creating default.");
+        saveSystemConfig(config);
+        return config;
+    }
+
+    File file = SD.open(_system_config_filename, FILE_READ);
+    if (!file)
+        return config;
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (error)
+    {
+        Serial.print("[DataManager] System Config JSON Parse Error: ");
+        Serial.println(error.c_str());
+        return config;
+    }
+
+    JsonObject root = doc.as<JsonObject>();
+    if (root["sleep_interval_min"]) config.sleep_interval_min = root["sleep_interval_min"];
+    if (root["sleep_interval_low_batt_min"]) config.sleep_interval_low_batt_min = root["sleep_interval_low_batt_min"];
+    if (root["battery_low_threshold_v"]) config.battery_low_threshold_v = root["battery_low_threshold_v"];
+
+    return config;
+}
+
+void DataManager::saveLayout(const std::vector<WidgetConfig>& layout)
+{
+    JsonDocument doc;
+    JsonObject root = doc.to<JsonObject>();
+    JsonArray widgets = root["widgets"].to<JsonArray>();
+
+    for (const auto& w : layout) {
+        JsonObject obj = widgets.add<JsonObject>();
+        obj["type"] = w.type;
+        obj["x"] = w.x;
+        obj["y"] = w.y;
+        obj["w"] = w.w;
+        obj["h"] = w.h;
+        if (w.title.length() > 0) obj["title"] = w.title;
+        if (w.dataSource.length() > 0) obj["dataSource"] = w.dataSource;
+        obj["min"] = w.min;
+        obj["max"] = w.max;
+    }
+
+    File file = SD.open(_layout_filename, FILE_WRITE);
+    if (file) {
+        serializeJsonPretty(doc, file);
+        file.flush();
+        file.close();
+        Serial.println("[DataManager] Layout saved to SD.");
+    }
+}
+
+std::vector<WidgetConfig> DataManager::loadLayout()
+{
+    std::vector<WidgetConfig> layout;
+
+    if (!SD.exists(_layout_filename))
+    {
+        Serial.println("[DataManager] No Layout file. Creating default.");
+        // Create Default Layout (Based on previous hardcoded values for 800x480)
+        // 1. Scatter Plot
+        layout.push_back(WidgetConfig{"ScatterPlot", 0, 0, 800, 360, "Weight (lb)", "scatter", 0, 0});
+        
+        // 2. Histograms
+        layout.push_back(WidgetConfig{"Histogram", 0, 360, 300, 120, "Interval (Hours)", "interval", 0, 0});
+        layout.push_back(WidgetConfig{"Histogram", 300, 360, 300, 120, "Duration (Minutes)", "duration", 0, 0});
+
+        // 3. Status Widgets
+        layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
+        layout.push_back(WidgetConfig{"TextLabel", 29, 2, 200, 20, "%m/%d %H:%M", "datetime", 0, 0});
+        
+        // Litter Gauge (Approximate placement for PetKit style)
+        layout.push_back(WidgetConfig{"LinearGauge", 610, 380, 175, 50, "Litter Level", "litter", 0, 100});
+        layout.push_back(WidgetConfig{"StatusBox", 610, 440, 175, 50, "", "petkit_status", 0, 0});
+
+        saveLayout(layout);
+        return layout;
+    }
+
+    File file = SD.open(_layout_filename, FILE_READ);
+    if (!file) return layout;
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (error) {
+        Serial.print("[DataManager] Layout JSON Error: ");
+        Serial.println(error.c_str());
+        return layout;
+    }
+
+    JsonArray widgets = doc["widgets"].as<JsonArray>();
+    for (JsonObject obj : widgets) {
+        WidgetConfig w;
+        w.type = obj["type"].as<String>();
+        w.x = obj["x"];
+        w.y = obj["y"];
+        w.w = obj["w"];
+        w.h = obj["h"];
+        if (obj["title"]) w.title = obj["title"].as<String>();
+        if (obj["dataSource"]) w.dataSource = obj["dataSource"].as<String>();
+        if (obj["min"]) w.min = obj["min"];
+        if (obj["max"]) w.max = obj["max"];
+        layout.push_back(w);
+    }
+    
+    return layout;
+}

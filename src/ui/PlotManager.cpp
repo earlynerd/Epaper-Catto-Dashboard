@@ -1,4 +1,5 @@
 #include "ui/PlotManager.h"
+#include "ui/DataProcessor.h"
 #include "Fonts/FreeMono9pt7b.h"
 #include "Fonts/FreeMonoBold9pt7b.h"
 
@@ -48,265 +49,144 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 {
     _display->fillScreen(GxEPD_WHITE);
 
-    // Prepare vectors
-    size_t numPets = pets.size();
-    std::vector<DataPoint> pet_scatterplot[numPets];
-    std::vector<float> interval_hist[numPets];
-    std::vector<float> duration_hist[numPets];
-
-    time_t now = time(NULL);
-    time_t timeStart = now - range.seconds;
-
-    int idx = 0;
-    for (const auto &pet : pets)
-    {
-        if (allPetData.find(pet.id.toInt()) == allPetData.end())
-        {
-            idx++;
-            continue;
-        }
-
-        time_t lastTimestamp = -1;
-        for (auto const &recordPair : allPetData[pet.id.toInt()])
-        {
-            const SL_Record &record = recordPair.second;
-            if (record.timestamp < timeStart)
-                continue;
-
-            float weight_lbs = (float)record.weight_lbs;
-            struct tm *thistimestamp = localtime(&record.timestamp);
-            time_t ts = mktime(thistimestamp);
-            pet_scatterplot[idx].push_back({(float)ts, weight_lbs});
-            if (record.duration_seconds > 0.0)
-                duration_hist[idx].push_back((float)record.duration_seconds / 60.0);
-
-            if (lastTimestamp > 0)
-                interval_hist[idx].push_back(((float)(record.timestamp - lastTimestamp)) / 3600.0);
-
-            lastTimestamp = record.timestamp;
-        }
-        idx++;
-    }
+    // 1. Process Data
+    DashboardData data = DataProcessor::process(pets, allPetData, range, _petColors);
     
-    int displayW = _display->width();
-    int displayH = _display->height();
+    // 2. Load Layout
+    std::vector<WidgetConfig> layout = _dataManager->loadLayout();
 
-    // --- Draw Histograms ---
-    if (status.api_type == PETKIT)
+    // 3. Render Widgets
+    for (const auto& w : layout)
     {
-        Histogram histInterval(_display, 0, displayH * 3 / 4, displayW * 3 / 8, displayH / 4);
-        histInterval.setTitle("Interval (Hours)");
-        histInterval.setBinCount(12);
-        histInterval.setNormalization(true);
-        for (int i = 0; i < numPets; ++i)
+        if (w.type == "ScatterPlot")
         {
-            histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
-        }
-        histInterval.plot();
+            ScatterPlot plot(_display, w.x, w.y, w.w, w.h);
+            char titleBuf[64];
+            // Format title with date range if requested, otherwise just use config title
+            if (w.title.indexOf("%s") >= 0) snprintf(titleBuf, sizeof(titleBuf), w.title.c_str(), range.name);
+            else strncpy(titleBuf, w.title.c_str(), sizeof(titleBuf));
+            
+            plot.setLabels(titleBuf, "Date", "Weight"); // Axis labels could be in config too technically
+            int xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
 
-        Histogram histDuration(_display, displayW * 3 / 8, displayH * 3 / 4, displayW * 3 / 8, displayH / 4);
-        histDuration.setTitle("Duration (Minutes)");
-        histDuration.setBinCount(12);
-        histDuration.setNormalization(true);
-        for (int i = 0; i < numPets; ++i)
+            // Add all processed series to the plot
+            for (const auto& series : data.series)
+            {
+                plot.addSeries(series.name.c_str(), series.scatterPoints, series.color, series.bgColor, xticks, 10);
+            }
+            plot.draw();
+        }
+        else if (w.type == "Histogram")
         {
-            histDuration.addSeries(pets[i].name.c_str(), duration_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+            Histogram hist(_display, w.x, w.y, w.w, w.h);
+            hist.setTitle(w.title.c_str());
+            hist.setNormalization(true);
+            
+            // Apply bin count logic (could be in config)
+            if (pets.size() == 1) hist.setBinCount(32);
+            else hist.setBinCount(12);
+
+            for (const auto& series : data.series)
+            {
+                if (w.dataSource == "interval")
+                    hist.addSeries(series.name.c_str(), series.intervalValues, series.color, series.bgColor);
+                else if (w.dataSource == "duration")
+                    hist.addSeries(series.name.c_str(), series.durationValues, series.color, series.bgColor);
+            }
+            hist.plot();
         }
-        histDuration.plot();
-    }
-    else       //whisker
-    {
-        Histogram histInterval(_display, 0, displayH * 3 / 4, displayW * 3 / 4, displayH / 4);
-        histInterval.setTitle("Interval (Hours)");
-        if (pets.size() == 1)
-            histInterval.setBinCount(32);
-        else
-            histInterval.setBinCount(24);
-        histInterval.setNormalization(true);
-        for (int i = 0; i < numPets; ++i)
+        else if (w.type == "LinearGauge")
         {
-            histInterval.addSeries(pets[i].name.c_str(), interval_hist[i], _petColors[i % 4].color, _petColors[i % 4].background);
+            float val = 0;
+            String unit = "%";
+            uint16_t color = EPD_BLACK;
+            
+            if (w.dataSource == "battery")
+            {
+                 int mv = analogReadMilliVolts(Config::Pins::BATTERY_ADC);
+                 float v = (mv / 1000.0) * 2;
+                 // Simple percentage calc
+                 val = (v - 3.20) / (4.20 - 3.20) * 100.0;
+                 if (val > 100) val = 100;
+                 if (val < 0) val = 0;
+                 
+                 #if (EPD_SELECT == 1002)
+                     if (val > 80) color = EPD_GREEN;
+                     else if (val > 20) color = EPD_YELLOW;
+                     else color = EPD_RED;
+                 #endif
+            }
+            else if (w.dataSource == "litter")
+            {
+                val = status.litter_level_percent;
+                 #if (EPD_SELECT == 1002)
+                     if (val > 90) color = EPD_GREEN;
+                     else if (val > 80) color = EPD_YELLOW;
+                     else color = EPD_RED;
+                 #endif
+            }
+            else if (w.dataSource == "waste")
+            {
+                val = status.waste_level_percent;
+            }
+
+            LinearGauge *gauge = nullptr;
+            
+            // Should properly deallocate if doing heavy creating? 
+            // Currently PlotManager is destroyed/recreated regularly or not?
+            // "Stack" allocation or smart pointers would be better but using new/delete logic or local obj logic.
+            // Oh, we are in a loop in renderDashboard. "LinearGauge gauge" creates it on stack and destroys at loop end.
+            // The original code used "LinearGauge gauge(...)". 
+            // But we need polymorphism for BatteryGauge.
+            
+            if (w.dataSource == "battery")
+            {
+                 // Create BatteryGauge
+                 BatteryGauge bg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
+                 bg.setRange(w.min, w.max, unit);
+                 bg.showLabel(true, w.title);
+                 bg.draw(val);
+            }
+            else
+            {
+                 // Create Standard LinearGauge
+                 LinearGauge lg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
+                 lg.setRange(w.min, w.max, unit);
+                 lg.showLabel(true, w.title);
+                 lg.draw(val);
+            }
         }
-        histInterval.plot();
+        else if (w.type == "TextLabel")
+        {
+             TextLabel label(_display, w.x, w.y, w.w, w.h, EPD_BLACK, EPD_WHITE);
+             label.setFormat(w.title.length() > 0 ? w.title : "%m/%d %H:%M");
+             
+             if (w.dataSource == "datetime")
+             {
+                 time_t now;
+                 time(&now);
+                 label.draw(now);
+             }
+             
+        }
+        else if (w.type == "StatusBox")
+        {
+            StatusBox box(_display, w.x, w.y, w.w, w.h);
+            box.draw(status);
+        }
     }
 
-    // --- Draw ScatterPlot ---
-    ScatterPlot plot(_display, 0, 0, Config::EPD_WIDTH_PX, Config::EPD_HEIGHT_PX * 3 / 4);
-    char title[64];
-    sprintf(title, "Weight (lb) - %s", range.name);
-    plot.setLabels(title, "Date", "Weight(lb)");
 
-    int xticks = (range.type == LAST_7_DAYS) ? 10 : 18; 
-
-    for (int i = 0; i < numPets; ++i)
-    {
-        plot.addSeries(pets[i].name.c_str(), pet_scatterplot[i], _petColors[i % 4].color, _petColors[i % 4].background, xticks, 10);
-    }
-    plot.draw();
-
-    // --- Status Bar ---
-    // Draw Battery
-    int mv = analogReadMilliVolts(Config::Pins::BATTERY_ADC);
-    float battery_voltage = (mv / 1000.0) * 2;
-    int16_t x = 0, y = 0, x1 = 0, y1 = 0;
-    uint16_t w = 0, h = 0;
-
-    const float full_voltage = 4.20, empty_voltage = 3.20;
-    if (battery_voltage >= full_voltage)
-    {
-        battery_voltage = full_voltage;
-    }
-    if (battery_voltage < empty_voltage)
-        battery_voltage = empty_voltage;
+    // --- Status Bar (Overlays) ---
     
-    int battery_percent = (int)(100.0 * (battery_voltage - empty_voltage) / (full_voltage - empty_voltage));
-
-    LinearGauge *batteryGauge;
-    
-    uint16_t batteryColor = EPD_BLACK;
-#if (EPD_SELECT == 1002)
-    if (battery_percent > 80) batteryColor = EPD_GREEN;
-    else if (battery_percent > 20) batteryColor = EPD_YELLOW;
-    else batteryColor = EPD_RED;
-#endif
-
-    batteryGauge = new LinearGauge(_display, displayW - Layout::BATTERY_X_OFFSET, 2, Layout::BATTERY_W, Layout::BATTERY_H, batteryColor, EPD_WHITE);
-
-    batteryGauge->setRange(0, 100, "% ");
-    batteryGauge->showLabel(true, " ");
-    batteryGauge->draw(battery_percent);
-    
-    // Battery Icon
+    // Battery Icon Tip (Aesthetic overlay) - Can keep this or make it part of LinearGauge someday.
+    // Converting to primitive drawing in layout would be overkill for 3 lines.
+    // Keeping it hardcoded for now as it's just decoration for the specific battery gauge style.
     int battRight = Config::EPD_WIDTH_PX - 15;
     _display->drawLine(battRight - 1, 7, battRight - 1, 18, EPD_BLACK); 
     _display->drawLine(battRight, 7, battRight, 18, EPD_BLACK);
     _display->drawLine(battRight + 1, 7, battRight + 1, 18, EPD_BLACK);
-    // Tip
     _display->drawLine(battRight, 9, battRight, 16, EPD_WHITE);
     _display->drawLine(battRight - 1, 9, battRight - 1, 16, EPD_WHITE);
     _display->drawLine(battRight - 2, 9, battRight - 2, 16, EPD_WHITE);
-
-    // Draw Update Time
-    struct tm timeinfo;
-    char strftime_buf[64]; 
-    time(&now);                   
-    localtime_r(&now, &timeinfo); 
-    strftime(strftime_buf, sizeof(strftime_buf), "%m/%d/%y %H:%M", &timeinfo);
-    
-    _display->setFont(&FreeMono9pt7b);
-    _display->setTextSize(0);
-    _display->getTextBounds(strftime_buf, 0, 0, &x1, &y1, &w, &h);
-    
-    int timeX = Config::EPD_WIDTH_PX - 15 - w;
-    _display->setTextColor(EPD_BLACK); 
-    _display->setCursor(29, h / 2 + 12); // Re-using old magic number "29" for now (left padding?)
-    _display->print(strftime_buf);
-
-    if (status.litter_level_percent > 0)
-    {
-        if (status.api_type == PETKIT)
-        {
-            LinearGauge *litterGauge;
-            // Calculations derived from original code
-            int litterGauge_x = (displayW * 3/4) + 10;
-            int litterGauge_y = (displayH * 3/4) + Layout::PADDING_LARGE; 
-            int litterGauge_w = displayW - litterGauge_x - Layout::PADDING_MEDIUM;
-            // Height calculation: (1/4 vertical - 20 - 15 - 15) / 2
-            int panelH = displayH/4;
-            int availableH = panelH - Layout::PADDING_LARGE - Layout::PADDING_MEDIUM - Layout::PADDING_MEDIUM;
-            int litterGauge_h = availableH / 2;
-
-            uint16_t gaugeColor = EPD_BLACK;
-#if (EPD_SELECT == 1002)
-            if (status.litter_level_percent > 90) gaugeColor = EPD_GREEN;
-            else if (status.litter_level_percent > 80) gaugeColor = EPD_YELLOW;
-            else gaugeColor = EPD_RED;
-#endif
-            litterGauge = new LinearGauge(_display, litterGauge_x , litterGauge_y, litterGauge_w, litterGauge_h, gaugeColor, EPD_WHITE);
-
-            litterGauge->setRange(0, 100, "%");
-            litterGauge->showLabel(true, "Litter: ");
-            litterGauge->draw(status.litter_level_percent);
-            
-            // Status Box
-            int16_t statusBox_x = litterGauge_x;
-            int16_t statusBox_y = litterGauge_y + litterGauge_h + Layout::PADDING_MEDIUM;
-            int16_t statusBox_w = litterGauge_w;
-            int16_t statusBox_h = litterGauge_h;
-            
-            _display->drawRect(statusBox_x, statusBox_y, statusBox_w, statusBox_h, EPD_BLACK );
-            
-            String statusString;
-            uint16_t boxColor = EPD_WHITE;
-            uint16_t textColor = EPD_BLACK;
-
-            if(status.is_drawer_full == true)
-            {
-                boxColor = (EPD_SELECT == 1002) ? EPD_RED : EPD_BLACK;
-                textColor = EPD_WHITE;
-                statusString = "Box FULL";
-            }
-            else if(status.litter_level_percent < 60)
-            {
-                boxColor = (EPD_SELECT == 1002) ? EPD_RED : EPD_BLACK;
-                textColor = EPD_WHITE;
-                statusString = "Litter LOW";
-            }
-            else
-            {
-                boxColor = (EPD_SELECT == 1002) ? EPD_GREEN : EPD_WHITE;
-                textColor = (EPD_SELECT == 1002) ? EPD_WHITE : EPD_BLACK; // Logic preserved
-                statusString = "Box OK";
-            }
-             
-            if (boxColor != EPD_WHITE) {
-                 _display->fillRect(statusBox_x+2, statusBox_y+2, statusBox_w-4, statusBox_h-4, boxColor);
-            }
-
-            _display->setFont(&FreeMonoBold9pt7b);
-            _display->setTextSize(1);
-            _display->setTextColor(textColor);
-            
-            int16_t tx, ty; uint16_t tw, th;
-            _display->getTextBounds(statusString, 0, 0, &tx, &ty, &tw, &th);
-            _display->setCursor(statusBox_x + (statusBox_w - tw)/2, statusBox_y + (statusBox_h - th)/2 + th/2 + 2); // Approximate vertical center
-            _display->print(statusString);
-        }
-        else // whisker
-        {
-            LinearGauge *litterGauge;
-            LinearGauge *wasteGauge;
-            
-            int gaugesX = displayW * 3 / 4 + 5;
-            int offsetBase = displayH / 4 - 20 - 30; // Original logic
-            int gaugeH = offsetBase / 2;
-            int gaugeW = displayW / 4 - 20;
-
-            int litterY = displayH * 3 / 4 + 20;
-            int wasteY = displayH - 15 - gaugeH;
-
-            uint16_t litterColor = EPD_BLACK;
-            uint16_t wasteColor = EPD_BLACK;
-
-#if (EPD_SELECT == 1002)
-            if (status.litter_level_percent > 70.0) litterColor = EPD_GREEN;
-            else if (status.litter_level_percent > 30.0) litterColor = EPD_YELLOW;
-            else litterColor = EPD_RED;
-
-            if (status.waste_level_percent < 30.0) wasteColor = EPD_GREEN;
-            else if (status.waste_level_percent < 70.0) wasteColor = EPD_YELLOW;
-            else wasteColor = EPD_RED;
-#endif
-            litterGauge = new LinearGauge(_display, gaugesX, litterY, gaugeW, gaugeH, litterColor, EPD_WHITE);
-            wasteGauge = new LinearGauge(_display, gaugesX, wasteY, gaugeW, gaugeH, wasteColor, EPD_WHITE);
-
-            litterGauge->setRange(0, 100, "%");
-            litterGauge->showLabel(true, "Litter: ");
-            litterGauge->draw(status.litter_level_percent);
-
-            wasteGauge->setRange(0, 100, "%");
-            wasteGauge->showLabel(true, "Waste: ");
-            wasteGauge->draw(status.waste_level_percent);
-        }
-    }
 }

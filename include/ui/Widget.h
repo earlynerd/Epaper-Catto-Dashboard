@@ -72,6 +72,16 @@ private:
     uint8_t _head;
     float _min, _max;
     bool _autoScale;
+
+};
+
+// ---------------------------------------------------------
+// Battery Gauge: LinearGauge with a generic "+" tip
+// ---------------------------------------------------------
+class BatteryGauge : public LinearGauge {
+public:
+    BatteryGauge(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg);
+    void draw(float value) override;
 };
 
 #endif

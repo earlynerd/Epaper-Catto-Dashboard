@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 #include "core/SharedTypes.h"
 #include "core/Config.h" 
+#include "ui/LayoutTypes.h" 
 
 class DataManager {
 public:
@@ -60,6 +61,14 @@ public:
     // Helper to find the most recent timestamp in the existing data
     time_t getLatestTimestamp(const PetDataMap &petData);
 
+    // Runtime Configuration
+    SystemConfig getSystemConfig();
+    void saveSystemConfig(const SystemConfig& config);
+
+    // Layout Configuration
+    std::vector<WidgetConfig> loadLayout();
+    void saveLayout(const std::vector<WidgetConfig>& layout); // For creating default
+
 private:
     String _filename = "/pet_data.json";
     String _status_filename = "/status.json";
@@ -67,6 +76,8 @@ private:
     const char* _secrets_filename = "/secrets.json";
     const char* _tz_filename = "/timezone.json";
     const char* _config_filename = "/config.json";
+    const char* _system_config_filename = "/system_config.json";
+    const char* _layout_filename = "/layout.json";
     const char* _env_data_filename = "/env_data.json";
 
     String _ssid;

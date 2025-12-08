@@ -33,6 +33,12 @@ struct env_data
   time_t timestamp;
 };
 
+struct SystemConfig {
+    int sleep_interval_min = 120;           // Default 2 hours
+    int sleep_interval_low_batt_min = 360;  // Default 6 hours
+    float battery_low_threshold_v = 3.50;   // Default 3.5V
+};
+
 // Global constants for NVS keys
 #define NVS_NAMESPACE "petkitplotter"
 #define NVS_PLOT_RANGE_KEY "plotrange"

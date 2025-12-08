@@ -294,3 +294,27 @@ void Sparkline::draw(float currentVal)
         prevY = pointY;
     }
 }
+
+
+// --- BatteryGauge Implementation ---
+BatteryGauge::BatteryGauge(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
+    : LinearGauge(gfx, x, y, w, h, colorFg, colorBg)
+{
+}
+
+void BatteryGauge::draw(float value)
+{
+    // Draw base gauge
+    LinearGauge::draw(value);
+
+    // Draw Tip relative to the gauge
+    int16_t tipX = _x + _w;
+    int16_t tipY = _y + (_h / 4); 
+    int16_t tipH = _h / 2; 
+
+    // Adjust to match "nub" look
+    // 3 lines thick
+    _gfx->drawLine(tipX, tipY, tipX, tipY + tipH, EPD_BLACK);
+    _gfx->drawLine(tipX + 1, tipY, tipX + 1, tipY + tipH, EPD_BLACK);
+    _gfx->drawLine(tipX + 2, tipY, tipX + 2, tipY + tipH, EPD_BLACK);
+}
