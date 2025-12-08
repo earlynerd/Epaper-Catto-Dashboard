@@ -14,13 +14,16 @@ It stores 365 days of past usage data to its micro SD card, and has selectable p
 
 It is able to determine your local timezone automatically, and synchronize itself and the built in RTC using NTP servers. Be sure to add a CR1225 battery to the holder inside, it does not come with one installed.
 
-Whisker accounts without the paid tier have access to only 7 days of historical data, but the plot will grow to contain more data with time. Petkit accounts can access 30 days, and the records contain the duration of each visit.
+Whisker accounts without the paid tier have access to only 7 days of historical data, but the plot will grow to contain more data with time. Petkit accounts can access 30 days, and the records contain the duration of each visit, which allows plotting an additional histogram.
 
-All settings and history data are read from and recorded to the micro SD card. So, be sure to install one. Must be 64GB or below, formatted FAT32.
+All settings and history data are read from and recorded to the micro SD card. So, be sure to install one. Must be 64GB or below, formatted FAT32. Data is all stored in JSON format, and can be manually edited or backed up. Swapping the SD card to another display is seamless. 
 
-The device will host a captive portal to allow you to select your wifi access point and enter the password, and provide your petkit or whisker account login. Alternatively, after first boot, you can eject the micro SD and edit "secrets.json" to provide these details.  
+The device will host a captive portal to allow you to select your wifi access point and enter the password, and provide your petkit or whisker account login. Alternatively, after first boot, you can eject the micro SD and edit "secrets.json" to provide these details.
+
+API for Petkit is based on PyPetkitApi, while the Whisker/Litter Robot API is based on PyLitterbot. These APIs are not publicly described by either company and might change at any time... The arduino library used for this project is [available here](https://github.com/earlynerd/SmartLitterbox).
 
 ## Compatibility
 * Seeedstudio reterminal epaper displays E1001 or E1002
 * All PetKit smart litterboxes (only Pura X tested...)
 * Whisker Litter Robot 4 (possibly others, but untested).
+* Micro SD <=64GB, FAT32
