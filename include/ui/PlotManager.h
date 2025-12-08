@@ -1,12 +1,12 @@
 #ifndef PLOT_MANAGER_H
 #define PLOT_MANAGER_H
 
-#include "SharedTypes.h"
-#include "config.h"
-#include "ScatterPlot.h"
-#include "histogram.h"
-#include "Dashboard.h"
-#include "DataManager.h"
+#include "core/SharedTypes.h"
+#include "core/Config.h"
+#include "ui/ScatterPlot.h"
+#include "ui/Histogram.h"
+#include "ui/Widget.h"
+#include "core/DataManager.h"
 
 class PlotManager {
 public:

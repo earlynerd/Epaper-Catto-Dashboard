@@ -1,4 +1,4 @@
-#include "histogram.h"
+#include "ui/Histogram.h"
 #include <numeric>
 #include <algorithm>
 #include <cmath>

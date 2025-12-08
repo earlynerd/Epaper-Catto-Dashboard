@@ -1,9 +1,9 @@
 #include <Arduino.h>
-#include "Dashboard.h"
+#include "ui/Widget.h"
 #include <math.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
-#include "config.h"
+#include "core/Config.h"
 
 // --- Base Widget ---
 Widget::Widget(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)

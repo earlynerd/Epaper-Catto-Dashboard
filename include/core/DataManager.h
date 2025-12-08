@@ -6,8 +6,8 @@
 #include <SD.h>
 #include <SPI.h>
 #include <ArduinoJson.h>
-#include "SharedTypes.h"
-#include "config.h" 
+#include "core/SharedTypes.h"
+#include "core/Config.h" 
 
 class DataManager {
 public:

@@ -1,7 +1,7 @@
-#include "NetworkManager.h"
+#include "core/NetworkManager.h"
 #include <ArduinoJson.h>
-#include "certs.h"
-#include "provisionerConfig.h"
+#include "core/Certs.h"
+#include "core/ProvisionerConfig.h"
 #include "Fonts/FreeMono9pt7b.h"
 #include "Fonts/FreeMonoBold24pt7b.h"
 
@@ -12,6 +12,14 @@ NetworkManager::NetworkManager(DataManager *dataManager)
     memset(_time_zone, 0, sizeof(_time_zone));
 }
 
+/**
+ * @brief Attempts to connect to WiFi using stored credentials.
+ * 
+ * If no credentials exist or connection fails, it launches a captive portal (via ESP32 AP)
+ * to allow the user to input new credentials.
+ * 
+ * @param display Pointer to the E-Paper display to show status messages.
+ */
 void NetworkManager::connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display)
 {
     _display = display;
@@ -22,21 +30,11 @@ void NetworkManager::connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS
                           {
                               Serial.printf("Connected to SSID: %s\n", ssid);
                               _dataManager->saveSecrets(ssid, password, pkuser, pkpass);
-                              //_prefs.putString(NVS_SSID_KEY, ssid);
-                              // if (password)
-                              //    _prefs.putString(NVS_WIFI_PASS_KEY, password);
-                              // if (pkuser)
-                              //    _prefs.putString(NVS_PETKIT_USER_KEY, pkuser);
-                              // if (pkpass)
-                              //   _prefs.putString(NVS_PETKIT_PASS_KEY, pkpass);
                               Serial.println("Provisioning success! Restarting...");
-                              //_prefs.end();
                               ESP.restart(); // Clean restart after provisioning
                           });
 
-    // String ssid = _prefs.getString(NVS_SSID_KEY, "");
     String ssid = _dataManager->get_ssid();
-    // String pass = _prefs.getString(NVS_WIFI_PASS_KEY, "");
     String pass = _dataManager->get_wifi_pass();
 
     if (ssid == "")
@@ -51,7 +49,7 @@ void NetworkManager::connectOrProvision(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS
     Serial.print("Connecting to WiFi");
 
     uint32_t start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < WIFI_TIMEOUT)
+    while (WiFi.status() != WL_CONNECTED && millis() - start < Config::WIFI_TIMEOUT_MS)
     {
         delay(500);
         Serial.print(".");
@@ -89,10 +87,15 @@ void NetworkManager::printProvMessage()
     _display->display();
 }
 
+/**
+ * @brief Synchronizes system time via NTP.
+ * 
+ * First checks for a stored Timezone in DataManager. If missing, fetches it from WorldTimeAPI.
+ * Then configures NTP and updates the hardware RTC.
+ */
 bool NetworkManager::syncTime(RTC_PCF8563 &rtc)
 {
     // Try to load saved Timezone from NVS
-    // String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
     String storedTZ = _dataManager->get_timezone();
     if (storedTZ.length() > 0)
     {
@@ -119,11 +122,11 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
     if (strlen(_time_zone) == 0)
     {
         bool tz_success = false;
-        for (int i = 0; i < MAX_SYNC_RETRIES; ++i)
+        for (int i = 0; i < Config::MAX_SYNC_RETRIES; ++i)
         {
             Serial.printf("[Time Sync] Fetching timezone attempt %d...\n", i + 1);
 
-            if (http.begin(client, TIME_API_URL))
+            if (http.begin(client, Config::TIME_API_URL))
             {
                 int httpCode = http.GET();
                 if (httpCode == HTTP_CODE_OK)
@@ -135,13 +138,10 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
                         if (tz_iana)
                         {
                             // Save IANA (e.g. "America/New_York") for PetKit
-                            //_prefs.putString(NVS_PETKIT_TIMEZONE_KEY, tz_iana);
-
                             // Convert IANA to POSIX (e.g. "EST5EDT,M3.2.0,M11.1.0") for ESP32 system time
                             const char *tz_posix = TzDbLookup::getPosix(tz_iana);
 
                             strncpy(_time_zone, tz_posix, sizeof(_time_zone) - 1);
-                            //_prefs.putString(NVS_TZ_KEY, _time_zone);
                             _dataManager->saveTimezone(_time_zone, "us");
 
                             Serial.printf("[Time Sync] Discovered Timezone: %s (%s)\n", tz_iana, _time_zone);
@@ -164,7 +164,7 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
     }
 
     // Now perform the actual NTP Sync
-    configTzTime(_time_zone, NTP_SERVER_1, NTP_SERVER_2);
+    configTzTime(_time_zone, Config::NTP_SERVER_1, Config::NTP_SERVER_2);
 
     struct tm timeinfo;
     if (getLocalTime(&timeinfo, 15000))
@@ -183,30 +183,36 @@ bool NetworkManager::getTimezoneAndSync(RTC_PCF8563 &rtc)
     return false;
 }
 
+/**
+ * @brief Initializes the Smart Litterbox API client.
+ * 
+ * Attempts to log in to PetKit first. If that fails, falls back to Whisker API.
+ * 
+ * @return true if login successful, false otherwise.
+ */
 bool NetworkManager::initApi()
 {
-    // String user = _prefs.getString(NVS_PETKIT_USER_KEY, "");
     String user = _dataManager->get_SL_Account();
-    // String pass = _prefs.getString(NVS_PETKIT_PASS_KEY, "");
     String pass = _dataManager->get_SL_pass();
-    // String region = _prefs.getString(NVS_PETKIT_REGION_KEY, "us");
     String region = _dataManager->get_region();
-    //_prefs.putString(NVS_PETKIT_REGION_KEY, region);        //TODO: find a way to look this up from timezone or something
-    // String tz = _prefs.getString(NVS_PETKIT_TIMEZONE_KEY, "");
     String tz = _dataManager->get_region();
 
     if (user == "" || pass == "")
         return false;
+        
+    // Try PetKit First
     _petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str());
     _litterbox = _petkit;
     if (_litterbox->login())
         return true;
     else
     {
+        // Fallback to Whisker
         _petkit->~PetKitApi();
         _whisker = new WhiskerApi(user.c_str(), pass.c_str(), tz.c_str());
         _litterbox = _whisker;
     }
+    
     if (_litterbox->login())
         return true;
     else
@@ -215,10 +221,13 @@ bool NetworkManager::initApi()
         _litterbox = nullptr;
         return false;
     }
-
-    //_petkit = new PetKitApi(user.c_str(), pass.c_str(), region.c_str(), tz.c_str(), LED_PIN);
 }
 
+/**
+ * @brief Initializes system time from the external RTC (PCF8563).
+ * 
+ * Used when waking from sleep to restore system time without needing WiFi.
+ */
 bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)
 {
     if (rtc.lostPower())
@@ -227,7 +236,6 @@ bool NetworkManager::initializeFromRtc(RTC_PCF8563 &rtc)
     const timeval t = {.tv_sec = (time_t)nowrtc.unixtime(), .tv_usec = 0};
     settimeofday(&t, NULL);
     Serial.println("[Network] Time recalled from RTC");
-    // String storedTZ = _prefs.getString(NVS_TZ_KEY, "");
     String storedTZ = _dataManager->get_timezone();
     if (storedTZ.length() > 0)
     {

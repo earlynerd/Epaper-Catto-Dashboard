@@ -5,7 +5,7 @@
 
 #include <Arduino.h>
 #include <vector>
-#include "config.h"
+#include "core/Config.h"
 #if (EPD_SELECT == 1002)
 #include <GxEPD2_7C.h>
 #elif (EPD_SELECT == 1001)

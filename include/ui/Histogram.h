@@ -1,6 +1,6 @@
 #ifndef EPAPER_HISTOGRAM_H
 #define EPAPER_HISTOGRAM_H
-#include "config.h"
+#include "core/Config.h"
 #if (EPD_SELECT == 1002)
 #include <GxEPD2_7C.h>
 #elif (EPD_SELECT == 1001)

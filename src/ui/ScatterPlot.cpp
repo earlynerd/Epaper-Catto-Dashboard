@@ -1,6 +1,6 @@
 // ScatterPlot.cpp
 
-#include "ScatterPlot.h"
+#include "ui/ScatterPlot.h"
 #include <time.h> // For timestamp formatting
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
@@ -298,7 +298,7 @@ void ScatterPlot::add_refresh_timestamp()
     display->setFont(NULL);
     display->setTextSize(1);
     display->getTextBounds(strftime_buf, x, y, &x1, &y1, &w, &h);
-    x = EPD_WIDTH - MARGIN_RIGHT - w;
+    x = Config::EPD_WIDTH_PX - MARGIN_RIGHT - w;
     
     drawString(x, h/2, strftime_buf, NULL, EPD_BLACK); // Use NULL font for default
 

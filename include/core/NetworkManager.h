@@ -10,9 +10,9 @@
 #include "SmartLitterbox.h"
 #include "PetKitApi.h"
 #include "WhiskerApi.h"
-#include "config.h"
+#include "core/Config.h"
 #include "RTClib.h"
-#include "DataManager.h"
+#include "core/DataManager.h"
 
 #if (EPD_SELECT == 1002)
 #include <GxEPD2_7C.h>

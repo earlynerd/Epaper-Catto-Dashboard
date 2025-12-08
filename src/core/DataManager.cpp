@@ -1,22 +1,31 @@
-#include "DataManager.h"
+#include "core/DataManager.h"
 
 DataManager::DataManager() {}
 
+/**
+ * @brief Initialize DataManager and Mount SD Card.
+ * 
+ * Verifies SD card presence using detection pin, then mounts it.
+ * Also ensures basic config files (secrets.json, timezone.json) exist.
+ * 
+ * @param spi Reference to the global SPI bus.
+ * @return true if SD card mounted and basic files loaded/created.
+ */
 bool DataManager::begin(SPIClass &spi)
 {
-    pinMode(SD_EN_PIN, OUTPUT);
-    digitalWrite(SD_EN_PIN, HIGH);
-    pinMode(SD_DET_PIN, INPUT_PULLUP);
+    pinMode(Config::Pins::SD_EN, OUTPUT);
+    digitalWrite(Config::Pins::SD_EN, HIGH);
+    pinMode(Config::Pins::SD_DET, INPUT_PULLUP);
     delay(100);
 
-    if (digitalRead(SD_DET_PIN))
+    if (digitalRead(Config::Pins::SD_DET))
     {
         Serial.println("[DataManager] No SD card detected.");
         return false;
     }
 
     // We use the shared SPI instance passed from main
-    if (!SD.begin(SD_CS_PIN, spi))
+    if (!SD.begin(Config::Pins::SD_CS, spi))
     {
         Serial.println("[DataManager] SD Mount Failed!");
         return false;
@@ -41,6 +50,13 @@ bool DataManager::begin(SPIClass &spi)
     return true;
 }
 
+/**
+ * @brief Loads pet data from SD card into memory.
+ * 
+ * Handles crash recovery by checking for .tmp files from failed previous saves.
+ * 
+ * @param petData Map to populate with loaded data.
+ */
 void DataManager::loadData(PetDataMap &petData)
 {
     const char *tempFilename = "/pet_data.tmp";
@@ -104,6 +120,15 @@ void DataManager::loadData(PetDataMap &petData)
     Serial.println("[DataManager] Historical data loaded.");
 }
 
+/**
+ * @brief Saves pet data to SD card atomically.
+ * 
+ * Writes data to a temporary file first, then renames it to the target filename
+ * to prevent data corruption if power is lost during write.
+ * Prunes data older than 365 days.
+ * 
+ * @param petData The data to save.
+ */
 void DataManager::saveData(const PetDataMap &petData)
 {
     // ATOMIC SAVE
@@ -294,7 +319,6 @@ void DataManager::savePets(std::vector<SL_Pet> pets)
 
     for (const auto &pet : pets)
     {
-        // int petId = atoi(pet.id.c_str());
         JsonObject thispet = root[pet.id].to<JsonObject>();
         thispet["name"] = pet.name;
         thispet["weight_lbs"] = pet.weight_lbs;
@@ -444,6 +468,13 @@ SL_Status DataManager::getStatus()
     return s;
 }
 
+/**
+ * @brief Merges new API records into the existing dataset.
+ * 
+ * @param mainData Reference to the main data map.
+ * @param petId The ID of the pet the records belong to.
+ * @param newRecords Vector of new records from the API.
+ */
 void DataManager::mergeData(PetDataMap &mainData, int petId, const std::vector<SL_Record> &newRecords)
 {
     for (const auto &record : newRecords)
