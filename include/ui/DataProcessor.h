@@ -16,6 +16,12 @@ public:
         const DateRangeInfo &range,
         const std::vector<ColorPair>& colors // Pass colors explicitly
     );
+
+    static DashboardData processEnvData(
+        const std::vector<env_data>& envData,
+        const DateRangeInfo& range,
+        const std::vector<ColorPair>& colors
+    );
 };
 
 #endif // DATA_PROCESSOR_H

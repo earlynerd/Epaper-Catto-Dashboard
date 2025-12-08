@@ -51,6 +51,10 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 
     // 1. Process Data
     DashboardData data = DataProcessor::process(pets, allPetData, range, _petColors);
+
+    // 1b. Process Env Data
+    std::vector<env_data> envRecords = _dataManager->getEnvData();
+    DashboardData envPlotData = DataProcessor::processEnvData(envRecords, range, _petColors);
     
     // 2. Load Layout
     std::vector<WidgetConfig> layout = _dataManager->loadLayout();
@@ -66,14 +70,32 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             if (w.title.indexOf("%s") >= 0) snprintf(titleBuf, sizeof(titleBuf), w.title.c_str(), range.name);
             else strncpy(titleBuf, w.title.c_str(), sizeof(titleBuf));
             
-            plot.setLabels(titleBuf, "Date", "Weight"); // Axis labels could be in config too technically
+            plot.setLabels(titleBuf, "Date", "Value"); // Generic Y label
             int xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
 
-            // Add all processed series to the plot
-            for (const auto& series : data.series)
+            if (w.dataSource == "scatter" || w.dataSource == "")
             {
-                plot.addSeries(series.name.c_str(), series.scatterPoints, series.color, series.bgColor, xticks, 10);
+               for (const auto& series : data.series) {
+                   plot.addSeries(series.name.c_str(), series.scatterPoints, series.color, series.bgColor, xticks, 10);
+               }
             }
+            else if (w.dataSource == "temperature_history")
+            {
+               // Add Temp from processed env data. Series 0 is Temp.
+               if (envPlotData.series.size() > 0) {
+                   const auto& s = envPlotData.series[0];
+                   plot.addSeries(s.name.c_str(), s.scatterPoints, s.color, s.bgColor, xticks, 10);
+               }
+            }
+            else if (w.dataSource == "humidity_history")
+            {
+               // Add Humidity from processed env data. Series 1 is Humidity.
+               if (envPlotData.series.size() > 1) {
+                   const auto& s = envPlotData.series[1];
+                   plot.addSeries(s.name.c_str(), s.scatterPoints, s.color, s.bgColor, xticks, 10);
+               }
+            }
+            
             plot.draw();
         }
         else if (w.type == "Histogram")
@@ -167,7 +189,21 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                  time(&now);
                  label.draw(now);
              }
-             
+             else if (w.dataSource == "temperature" && !envRecords.empty())
+             {
+                 char buf[16];
+                 snprintf(buf, sizeof(buf), "%.1f C", envRecords.back().temperature);
+                 label.setFormat(buf);
+                 label.draw(0.0f);
+             }
+             else if (w.dataSource == "humidity" && !envRecords.empty())
+             {
+                 char buf[16];
+                 snprintf(buf, sizeof(buf), "%.0f%%", envRecords.back().humidity);
+                 label.setFormat(buf);
+                 label.draw(0.0f);
+             }
+
         }
         else if (w.type == "StatusBox")
         {
@@ -175,7 +211,6 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             box.draw(status);
         }
     }
-
 
     // --- Status Bar (Overlays) ---
     

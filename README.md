@@ -27,3 +27,51 @@ API for Petkit is based on PyPetkitApi, while the Whisker/Litter Robot API is ba
 * All PetKit smart litterboxes (only Pura X tested...)
 * Whisker Litter Robot 4 (possibly others, but untested).
 * Micro SD <=64GB, FAT32
+
+## Configuration
+
+This project supports extensive customization via configuration files on the SD card.
+
+### System Configuration
+A file named `system_config.json` will be created on the SD card. You can edit this to tune system behavior:
+```json
+{
+  "sleep_interval_min": 120,          // Normal update frequency in minutes
+  "sleep_interval_low_batt_min": 360, // Update frequency when battery is low
+  "battery_low_threshold_v": 3.5      // Voltage below which "Low Battery" mode triggers
+}
+```
+
+### Dashboard Layout
+You can completely customize the dashboard layout by editing `layout.json` on the SD card. If this file does not exist, a default layout will be created for you.
+
+You can specify which widgets to show, their usage source, and their position/size on the screen.
+
+**Supported Widgets:**
+
+*   **ScatterPlot**: Displays historical data points (e.g. Weight).
+    *   `dataSource`: "scatter"
+    *   `dataSource`: "temperature_history" or "humidity_history" (Environmental Data)
+*   **Histogram**: Displays frequency distribution.
+    *   `dataSource`: "interval" (Time between visits) or "duration" (Visit length)
+*   **LinearGauge**: A horizontal bar grap/gauge.
+    *   `dataSource`: "battery", "litter", "waste"
+    *   `dataSource`: "temperature" or "humidity" (Displays current value)
+*   **StatusBox**: (PetKit) Displays "Box FULL" / "Litter LOW" / "Box OK" status with color coding.
+    *   `dataSource`: "petkit_status"
+*   **TextLabel**: Displays text or date/time.
+    *   `dataSource`: "datetime" (uses `title` as strftime format), or leave empty for static text.
+    *   `dataSource`: "temperature" or "humidity" (Displays current value as text)
+    *   `title`: Format string like "%m/%d %H:%M"
+
+**Example Layout Entry:**
+```json
+{
+    "type": "TextLabel",
+    "x": 20, "y": 10, "w": 200, "h": 20,
+    "title": "%H:%M",
+    "dataSource": "datetime"
+}
+```
+
+There are example layouts provided in the `layouts/` folder of this repository for both PetKit and Whisker styles.

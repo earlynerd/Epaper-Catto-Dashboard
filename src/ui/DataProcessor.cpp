@@ -62,3 +62,43 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
 
     return data;
 }
+
+DashboardData DataProcessor::processEnvData(const std::vector<env_data>& envData,
+                                            const DateRangeInfo& range,
+                                            const std::vector<ColorPair>& colors)
+{
+    DashboardData data;
+    
+    time_t now = time(NULL);
+    time_t timeStart = now - range.seconds;
+
+    // Series 1: Temperature
+    ProcessedSeries tempSeries;
+    tempSeries.name = "Temperature";
+    // Choose a color (e.g. Red for Temp)
+    tempSeries.color = colors.size() > 0 ? colors[0].color : 0; 
+    tempSeries.bgColor = colors.size() > 0 ? colors[0].background : 0;
+
+    // Series 2: Humidity
+    ProcessedSeries humidSeries;
+    humidSeries.name = "Humidity";
+    // Choose a color (e.g. Blue for Humidity)
+    humidSeries.color = colors.size() > 1 ? colors[1].color : 0;
+    humidSeries.bgColor = colors.size() > 1 ? colors[1].background : 0;
+
+    for (const auto& rec : envData)
+    {
+        if (rec.timestamp < timeStart) continue;
+
+        struct tm *thistimestamp = localtime(&rec.timestamp);
+        time_t ts = mktime(thistimestamp);
+
+        tempSeries.scatterPoints.push_back({(float)ts, rec.temperature});
+        humidSeries.scatterPoints.push_back({(float)ts, rec.humidity});
+    }
+
+    data.series.push_back(tempSeries);
+    data.series.push_back(humidSeries);
+
+    return data;
+}
