@@ -4,10 +4,10 @@ DataManager::DataManager() {}
 
 /**
  * @brief Initialize DataManager and Mount SD Card.
- * 
+ *
  * Verifies SD card presence using detection pin, then mounts it.
  * Also ensures basic config files (secrets.json, timezone.json) exist.
- * 
+ *
  * @param spi Reference to the global SPI bus.
  * @return true if SD card mounted and basic files loaded/created.
  */
@@ -52,9 +52,9 @@ bool DataManager::begin(SPIClass &spi)
 
 /**
  * @brief Loads pet data from SD card into memory.
- * 
+ *
  * Handles crash recovery by checking for .tmp files from failed previous saves.
- * 
+ *
  * @param petData Map to populate with loaded data.
  */
 void DataManager::loadData(PetDataMap &petData)
@@ -122,11 +122,11 @@ void DataManager::loadData(PetDataMap &petData)
 
 /**
  * @brief Saves pet data to SD card atomically.
- * 
+ *
  * Writes data to a temporary file first, then renames it to the target filename
  * to prevent data corruption if power is lost during write.
  * Prunes data older than 365 days.
- * 
+ *
  * @param petData The data to save.
  */
 void DataManager::saveData(const PetDataMap &petData)
@@ -306,9 +306,8 @@ void DataManager::savePets(std::vector<SL_Pet> pets)
             if (SD.rename(_pets_filename, _pets_filename + ".bak"))
             {
                 Serial.println("[DataManager] Pets stored on SD do not match incoming, renamed existing pets and historical data for manual review/recovery.");
-
             }
-            if(SD.exists(_filename))
+            if (SD.exists(_filename))
             {
                 SD.rename(_filename, _filename + ".bak");
             }
@@ -470,7 +469,7 @@ SL_Status DataManager::getStatus()
 
 /**
  * @brief Merges new API records into the existing dataset.
- * 
+ *
  * @param mainData Reference to the main data map.
  * @param petId The ID of the pet the records belong to.
  * @param newRecords Vector of new records from the API.
@@ -630,7 +629,7 @@ void DataManager::saveSystemConfig(const SystemConfig &config)
 SystemConfig DataManager::getSystemConfig()
 {
     SystemConfig config; // Defaults instantiated
-    
+
     if (!SD.exists(_system_config_filename))
     {
         Serial.println("[DataManager] No System Config found. Creating default.");
@@ -654,34 +653,41 @@ SystemConfig DataManager::getSystemConfig()
     }
 
     JsonObject root = doc.as<JsonObject>();
-    if (root["sleep_interval_min"]) config.sleep_interval_min = root["sleep_interval_min"];
-    if (root["sleep_interval_low_batt_min"]) config.sleep_interval_low_batt_min = root["sleep_interval_low_batt_min"];
-    if (root["battery_low_threshold_v"]) config.battery_low_threshold_v = root["battery_low_threshold_v"];
+    if (root["sleep_interval_min"])
+        config.sleep_interval_min = root["sleep_interval_min"];
+    if (root["sleep_interval_low_batt_min"])
+        config.sleep_interval_low_batt_min = root["sleep_interval_low_batt_min"];
+    if (root["battery_low_threshold_v"])
+        config.battery_low_threshold_v = root["battery_low_threshold_v"];
 
     return config;
 }
 
-void DataManager::saveLayout(const std::vector<WidgetConfig>& layout)
+void DataManager::saveLayout(const std::vector<WidgetConfig> &layout)
 {
     JsonDocument doc;
     JsonObject root = doc.to<JsonObject>();
     JsonArray widgets = root["widgets"].to<JsonArray>();
 
-    for (const auto& w : layout) {
+    for (const auto &w : layout)
+    {
         JsonObject obj = widgets.add<JsonObject>();
         obj["type"] = w.type;
         obj["x"] = w.x;
         obj["y"] = w.y;
         obj["w"] = w.w;
         obj["h"] = w.h;
-        if (w.title.length() > 0) obj["title"] = w.title;
-        if (w.dataSource.length() > 0) obj["dataSource"] = w.dataSource;
+        if (w.title.length() > 0)
+            obj["title"] = w.title;
+        if (w.dataSource.length() > 0)
+            obj["dataSource"] = w.dataSource;
         obj["min"] = w.min;
         obj["max"] = w.max;
     }
 
     File file = SD.open(_layout_filename, FILE_WRITE);
-    if (file) {
+    if (file)
+    {
         serializeJsonPretty(doc, file);
         file.flush();
         file.close();
@@ -695,54 +701,81 @@ std::vector<WidgetConfig> DataManager::loadLayout()
 
     if (!SD.exists(_layout_filename))
     {
-        Serial.println("[DataManager] No Layout file. Creating default.");
-        // Create Default Layout (Based on previous hardcoded values for 800x480)
-        // 1. Scatter Plot
-        layout.push_back(WidgetConfig{"ScatterPlot", 0, 0, 800, 360, "Weight (lb)", "scatter", 0, 0});
-        
-        // 2. Histograms
-        layout.push_back(WidgetConfig{"Histogram", 0, 360, 300, 120, "Interval (Hours)", "interval", 0, 0});
-        layout.push_back(WidgetConfig{"Histogram", 300, 360, 300, 120, "Duration (Minutes)", "duration", 0, 0});
+        if (getStatus().api_type == PETKIT)
+        {
+            Serial.println("[DataManager] No Layout file. Creating Petkit default.");
+            // Create Default Layout (Based on previous hardcoded values for 800x480)
+            // 1. Scatter Plot
+            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, "Weight (lb) - %s", "scatter", 0, 0});
 
-        // 3. Status Widgets
-        layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
-        layout.push_back(WidgetConfig{"TextLabel", 29, 2, 200, 20, "%m/%d %H:%M", "datetime", 0, 0});
-        
-        // Litter Gauge (Approximate placement for PetKit style)
-        layout.push_back(WidgetConfig{"LinearGauge", 610, 380, 175, 50, "Litter Level", "litter", 0, 100});
-        layout.push_back(WidgetConfig{"StatusBox", 610, 440, 175, 50, "", "petkit_status", 0, 0});
+            // 2. Histograms
+            layout.push_back(WidgetConfig{"Histogram", 0, 360, 300, 120, "Interval (Hours)", "interval", 0, 0});
+            layout.push_back(WidgetConfig{"Histogram", 300, 360, 300, 120, "Duration (Minutes)", "duration", 0, 0});
 
+            // 3. Status Widgets
+            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
+            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, "%b %d, %I:%M %p", "datetime", 0, 0});
+
+            // Litter Gauge (Approximate placement for PetKit style)
+            layout.push_back(WidgetConfig{"LinearGauge", 610, 380, 175, 38, "Litter:", "litter", 0, 100});
+            layout.push_back(WidgetConfig{"StatusBox", 610, 427, 175, 38, "", "petkit_status", 0, 0});
+        }
+        else // whisker
+        {
+            Serial.println("[DataManager] No Layout file. Creating Whisker default.");
+            // 1. Scatter Plot
+            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, "Weight (lb) - %s", "scatter", 0, 0});
+
+            // 2. Histograms
+            layout.push_back(WidgetConfig{"Histogram", 0, 360, 600, 120, "Interval (Hours)", "interval", 0, 0});
+
+            // 3. Status Widgets
+            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
+            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, "%b %d, %I:%M %p", "datetime", 0, 0});
+
+            // Litter Gauge (Approximate placement for PetKit style)
+            layout.push_back(WidgetConfig{"LinearGauge", 605, 380, 180, 35, "Litter:", "litter", 0, 100});
+            layout.push_back(WidgetConfig{"LinearGauge", 605, 430, 180, 35, "Waste:", "waste", 0, 100});
+
+        }
         saveLayout(layout);
         return layout;
     }
 
     File file = SD.open(_layout_filename, FILE_READ);
-    if (!file) return layout;
+    if (!file)
+        return layout;
 
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, file);
     file.close();
 
-    if (error) {
+    if (error)
+    {
         Serial.print("[DataManager] Layout JSON Error: ");
         Serial.println(error.c_str());
         return layout;
     }
 
     JsonArray widgets = doc["widgets"].as<JsonArray>();
-    for (JsonObject obj : widgets) {
+    for (JsonObject obj : widgets)
+    {
         WidgetConfig w;
         w.type = obj["type"].as<String>();
         w.x = obj["x"];
         w.y = obj["y"];
         w.w = obj["w"];
         w.h = obj["h"];
-        if (obj["title"]) w.title = obj["title"].as<String>();
-        if (obj["dataSource"]) w.dataSource = obj["dataSource"].as<String>();
-        if (obj["min"]) w.min = obj["min"];
-        if (obj["max"]) w.max = obj["max"];
+        if (obj["title"])
+            w.title = obj["title"].as<String>();
+        if (obj["dataSource"])
+            w.dataSource = obj["dataSource"].as<String>();
+        if (obj["min"])
+            w.min = obj["min"];
+        if (obj["max"])
+            w.max = obj["max"];
         layout.push_back(w);
     }
-    
+
     return layout;
 }

@@ -3,9 +3,9 @@
         {
             "type": "ScatterPlot",
             "x": 0,
-            "y": 0,
+            "y": 10,
             "w": 800,
-            "h": 360,
+            "h": 350,
             "title": "Weight (lb) - %s",
             "dataSource": "scatter",
             "min": 0,

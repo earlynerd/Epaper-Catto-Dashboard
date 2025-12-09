@@ -49,17 +49,15 @@ You can specify which widgets to show, their usage source, and their position/si
 
 **Supported Widgets:**
 
-*   **ScatterPlot**: Displays historical data points (e.g. Weight).
-    *   `dataSource`: "scatter"
-    *   `dataSource`: "temperature_history" or "humidity_history" (Environmental Data)
-*   **Histogram**: Displays frequency distribution.
+*   **Type:ScatterPlot**: Displays historical data points (e.g. Weight).
+    *   `dataSource`: "scatter", "temperature_history", or "humidity_history"
+*   **Type:Histogram**: Displays frequency distribution.
     *   `dataSource`: "interval" (Time between visits) or "duration" (Visit length)
-*   **LinearGauge**: A horizontal bar grap/gauge.
-    *   `dataSource`: "battery", "litter", "waste"
-    *   `dataSource`: "temperature" or "humidity" (Displays current value)
-*   **StatusBox**: (PetKit) Displays "Box FULL" / "Litter LOW" / "Box OK" status with color coding.
+*   **Type:LinearGauge**: A horizontal bar grap/gauge.
+    *   `dataSource`: "battery", "litter", "waste", "temperature", or "humidity"
+*   **Type:StatusBox**: (PetKit) Displays "Box FULL" / "Litter LOW" / "Box OK" status with color coding.
     *   `dataSource`: "petkit_status"
-*   **TextLabel**: Displays text or date/time.
+*   **Type:TextLabel**: Displays text or date/time.
     *   `dataSource`: "datetime" (uses `title` as strftime format), or leave empty for static text.
     *   `dataSource`: "temperature" or "humidity" (Displays current value as text)
     *   `title`: Format string like "%m/%d %H:%M"
@@ -73,5 +71,3 @@ You can specify which widgets to show, their usage source, and their position/si
     "dataSource": "datetime"
 }
 ```
-
-There are example layouts provided in the `layouts/` folder of this repository for both PetKit and Whisker styles.

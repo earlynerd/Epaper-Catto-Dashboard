@@ -4,11 +4,12 @@
 #include <time.h> // For timestamp formatting
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSansBold9pt7b.h>
 
 // Define plot margins for labels and axes
-const int MARGIN_TOP = 30;
+const int MARGIN_TOP = 20;
 const int MARGIN_BOTTOM = 20;
-const int MARGIN_LEFT = 29;
+const int MARGIN_LEFT = 30;
 const int MARGIN_RIGHT = 15;
 
 // Define colors (0=black, 15=white for this library)
@@ -127,7 +128,7 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         display->setTextSize(1);
         display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
         display->setTextColor(EPD_BLACK); // Original code used blue for Y-axis labels
-        display->setCursor(plotAreaX - w - 6, yPos - h/2); // Centered text
+        display->setCursor(plotAreaX - w - 5, yPos - h/2); // Centered text
         display->print(buffer);
     }
 
@@ -176,10 +177,11 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     // --- Draw Title and Axis Labels ---
     int16_t x = plotAreaX, y = plotAreaY, x1 = 100, y1 = 100;
     uint16_t w = 0, h = 0;
-    display->setFont(&FreeSansBold12pt7b);
+    display->setFont(&FreeSansBold9pt7b);
+    display->setTextSize(0);
     display->getTextBounds(_title.c_str(), x, y, &x1, &y1, &w, &h);
     display->setTextColor(EPD_BLACK);
-    display->setCursor(_x + (_width - w) / 2, MARGIN_TOP - h/2); // Centered title
+    display->setCursor(_x + (_width - w) / 2, _y + MARGIN_TOP - h/2); // Centered title
     display->print(_title);
     
     display->setTextColor(EPD_BLACK);
