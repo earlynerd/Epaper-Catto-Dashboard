@@ -677,6 +677,9 @@ void DataManager::saveLayout(const std::vector<WidgetConfig> &layout)
         obj["y"] = w.y;
         obj["w"] = w.w;
         obj["h"] = w.h;
+        obj["p1"] = w.p1;
+        obj["p2"] = w.p2;
+
         if (w.title.length() > 0)
             obj["title"] = w.title;
         if (w.dataSource.length() > 0)
@@ -706,36 +709,37 @@ std::vector<WidgetConfig> DataManager::loadLayout()
             Serial.println("[DataManager] No Layout file. Creating Petkit default.");
             // Create Default Layout (Based on previous hardcoded values for 800x480)
             // 1. Scatter Plot
-            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, "Weight (lb) - %s", "scatter", 0, 0});
+            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, 0, 0, "Weight (lb) - %s", "scatter", 0, 0, ""});
 
             // 2. Histograms
-            layout.push_back(WidgetConfig{"Histogram", 0, 360, 300, 120, "Interval (Hours)", "interval", 0, 0});
-            layout.push_back(WidgetConfig{"Histogram", 300, 360, 300, 120, "Duration (Minutes)", "duration", 0, 0});
+            layout.push_back(WidgetConfig{"Histogram", 0, 360, 300, 120, 0, 0, "Interval (Hours)", "interval", 0, 0, ""});
+            layout.push_back(WidgetConfig{"Histogram", 300, 360, 300, 120, 0, 0, "Duration (Minutes)", "duration", 0, 0, ""});
 
             // 3. Status Widgets
-            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
-            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, "%b %d, %I:%M %p", "datetime", 0, 0});
+            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, 0, 0, "", "battery", 0, 100, "%"});
+            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, 0, 0, "%b %d, %I:%M %p", "datetime", 0, 0, ""});
 
-            // Litter Gauge (Approximate placement for PetKit style)
-            layout.push_back(WidgetConfig{"LinearGauge", 610, 380, 175, 38, "Litter:", "litter", 0, 100});
-            layout.push_back(WidgetConfig{"StatusBox", 610, 427, 175, 38, "", "petkit_status", 0, 0});
+            // Litter Gauge 
+            layout.push_back(WidgetConfig{"LinearGauge", 610, 380, 175, 38, 0, 0, "Litter:", "litter", 0, 100, "%"});
+            // status box 
+            layout.push_back(WidgetConfig{"StatusBox", 610, 427, 175, 38, 0, 0, "", "petkit_status", 0, 0, ""});
         }
         else // whisker
         {
             Serial.println("[DataManager] No Layout file. Creating Whisker default.");
             // 1. Scatter Plot
-            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, "Weight (lb) - %s", "scatter", 0, 0});
+            layout.push_back(WidgetConfig{"ScatterPlot", 0, 10, 800, 350, 0, 0, "Weight (lb) - %s", "scatter", 0, 0, ""});
 
             // 2. Histograms
-            layout.push_back(WidgetConfig{"Histogram", 0, 360, 600, 120, "Interval (Hours)", "interval", 0, 0});
+            layout.push_back(WidgetConfig{"Histogram", 0, 360, 600, 120, 0, 0, "Interval (Hours)", "interval", 0, 0, ""});
 
             // 3. Status Widgets
-            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, "", "battery", 0, 100});
-            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, "%b %d, %I:%M %p", "datetime", 0, 0});
+            layout.push_back(WidgetConfig{"LinearGauge", 725, 2, 59, 22, 0, 0, "", "battery", 0, 100, "%"});
+            layout.push_back(WidgetConfig{"TextLabel", 29, 8, 200, 20, 0, 0, "%b %d, %I:%M %p", "datetime", 0, 0, ""});
 
             // Litter Gauge (Approximate placement for PetKit style)
-            layout.push_back(WidgetConfig{"LinearGauge", 605, 380, 180, 35, "Litter:", "litter", 0, 100});
-            layout.push_back(WidgetConfig{"LinearGauge", 605, 430, 180, 35, "Waste:", "waste", 0, 100});
+            layout.push_back(WidgetConfig{"LinearGauge", 605, 380, 180, 35,0, 0, "Litter:", "litter", 0, 100, "%"});
+            layout.push_back(WidgetConfig{"LinearGauge", 605, 430, 180, 35, 0, 0, "Waste:", "waste", 0, 100, "%"});
 
         }
         saveLayout(layout);
@@ -762,10 +766,14 @@ std::vector<WidgetConfig> DataManager::loadLayout()
     {
         WidgetConfig w;
         w.type = obj["type"].as<String>();
+        w.unit = obj["unit"].as<String>();
         w.x = obj["x"];
         w.y = obj["y"];
         w.w = obj["w"];
         w.h = obj["h"];
+        w.p1 = obj["p1"];
+        w.p2 = obj["p2"];
+
         if (obj["title"])
             w.title = obj["title"].as<String>();
         if (obj["dataSource"])

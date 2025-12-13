@@ -75,12 +75,13 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 
             plot.setLabels(titleBuf, "Date", "Value"); // Generic Y label
             int xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
+            int yticks = w.h / PIXELS_PER_TICK;
 
             if (w.dataSource == "scatter" || w.dataSource == "")
             {
                 for (const auto &series : data.series)
                 {
-                    plot.addSeries(series.name.c_str(), series.scatterPoints, series.color, series.bgColor, xticks, 10);
+                    plot.addSeries(series.name.c_str(), series.scatterPoints, series.color, series.bgColor, xticks, yticks);
                 }
             }
             else if (w.dataSource == "temperature_history")
@@ -128,7 +129,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         else if (w.type == "LinearGauge")
         {
             float val = 0;
-            String unit = "%";
+
             uint16_t color = EPD_BLACK;
 
             if (w.dataSource == "battery")
@@ -150,7 +151,6 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                 else
                     color = EPD_RED;
 #endif
-                
             }
             else if (w.dataSource == "litter")
             {
@@ -183,28 +183,59 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             {
                 // Create BatteryGauge
                 BatteryGauge bg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
-                bg.setRange(w.min, w.max, unit);
+                bg.setRange(w.min, w.max, w.unit);
                 bg.showLabel(true, w.title);
                 bg.draw(val);
                 int battRight = w.x + w.w;
-                const int16_t buttonTop = w.y+ w.h/3 - 1;
-                const int16_t buttonBottom = w.y + w.h - w.h/3 +1;
-                _display->drawLine(battRight, buttonTop, battRight, buttonBottom, EPD_BLACK);                  //three black lines to make the button top of battery
+                const int16_t buttonTop = w.y + w.h / 3 - 1;
+                const int16_t buttonBottom = w.y + w.h - w.h / 3 + 1;
+                _display->drawLine(battRight, buttonTop, battRight, buttonBottom, EPD_BLACK); // three black lines to make the button top of battery
                 _display->drawLine(battRight + 1, buttonTop, battRight + 1, buttonBottom, EPD_BLACK);
                 _display->drawLine(battRight + 2, buttonTop, battRight + 2, buttonBottom, EPD_BLACK);
 
-                _display->drawLine(battRight-1, buttonTop, battRight-1, buttonBottom-1, EPD_WHITE);         //three white ones to erase a bit in the center
-                _display->drawLine(battRight, buttonTop, battRight , buttonBottom-1, EPD_WHITE);
-                _display->drawLine(battRight + 1, buttonTop, battRight + 1, buttonBottom-1, EPD_WHITE);
+                _display->drawLine(battRight - 1, buttonTop, battRight - 1, buttonBottom - 1, EPD_WHITE); // three white ones to erase a bit in the center
+                _display->drawLine(battRight, buttonTop, battRight, buttonBottom - 1, EPD_WHITE);
+                _display->drawLine(battRight + 1, buttonTop, battRight + 1, buttonBottom - 1, EPD_WHITE);
             }
             else
             {
                 // Create Standard LinearGauge
                 LinearGauge lg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
-                lg.setRange(w.min, w.max, unit);
+                lg.setRange(w.min, w.max, w.unit);
                 lg.showLabel(true, w.title);
                 lg.draw(val);
             }
+        }
+        else if (w.type == "RingGauge")
+        {
+            float val = 0;
+
+            uint16_t color = EPD_BLACK;
+
+            if (w.dataSource == "battery")
+            {
+                int mv = analogReadMilliVolts(Config::Pins::BATTERY_ADC);
+                float v = (mv / 1000.0) * 2;
+                // Simple percentage calc
+                val = (v - 3.20) / (4.20 - 3.20) * 100.0;
+                if (val > 100)
+                    val = 100;
+                if (val < 0)
+                    val = 0;
+            }
+            else if (w.dataSource == "litter")
+            {
+                val = status.litter_level_percent;
+            }
+            else if (w.dataSource == "waste")
+            {
+                val = status.waste_level_percent;
+            }
+
+            RingGauge rg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
+            rg.setRange(w.min, w.max, w.unit);
+            rg.setAngleRange(w.p1, w.p2);
+            rg.draw(val);
         }
         else if (w.type == "TextLabel")
         {

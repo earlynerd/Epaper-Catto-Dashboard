@@ -41,8 +41,8 @@ class RingGauge : public Widget {
 public:
     RingGauge(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t radius, int16_t thickness, uint16_t colorFg, uint16_t colorBg);
     
-    void setRange(float minVal, float maxVal);
-    void setAngleRange(int16_t startAngle, int16_t endAngle); // 0 is top, 90 is right
+    void setRange(float minVal, float maxVal, String units);
+    void setAngleRange(int16_t startAngle, int16_t endAngle); 
     void draw(float value) override;
 
 private:

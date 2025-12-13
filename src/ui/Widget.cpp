@@ -127,10 +127,11 @@ RingGauge::RingGauge(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t radius, in
     _max = 100;
 }
 
-void RingGauge::setRange(float minVal, float maxVal)
+void RingGauge::setRange(float minVal, float maxVal, String units)
 {
     _min = minVal;
     _max = maxVal;
+    _units = units;
 }
 
 void RingGauge::setAngleRange(int16_t startAngle, int16_t endAngle)
@@ -142,7 +143,7 @@ void RingGauge::setAngleRange(int16_t startAngle, int16_t endAngle)
 // Custom Helper to draw thick arc without native GFX support
 void RingGauge::fillArc(int16_t cx, int16_t cy, int16_t start_angle, int16_t end_angle, int16_t r_outer, int16_t r_inner, uint16_t color)
 {
-    float angle_step = 6.0; // Resolution in degrees (higher = smoother but slower)
+    float angle_step = 1.0; // Resolution in degrees (higher = smoother but slower)
 
     // Convert 0-360 standard to GFX standard (0 is Right, 90 is Bottom in standard math,
     // but usually 0 is Top in UI thinking. Let's stick to standard Trig: 0=Right, -90=Top)
@@ -151,13 +152,13 @@ void RingGauge::fillArc(int16_t cx, int16_t cy, int16_t start_angle, int16_t end
 
     for (float i = start_angle; i < end_angle; i += angle_step)
     {
-        float a1 = (i - 90) * DEG_TO_RAD;
-        float a2 = ((i + angle_step) - 90) * DEG_TO_RAD;
+        float a1 = i * DEG_TO_RAD;
+        float a2 = (i + angle_step)  * DEG_TO_RAD;
 
         // Ensure we don't over-shoot the end angle
         if (i + angle_step > end_angle)
         {
-            a2 = (end_angle - 90) * DEG_TO_RAD;
+            a2 = end_angle  * DEG_TO_RAD;
         }
 
         // Outer points
@@ -195,23 +196,27 @@ void RingGauge::draw(float value)
     // _gfx->drawCircle(_x + _radius, _y + _radius, _radius - _thickness, _cFg); // Inner border
 
     // 2. Draw Active Arc
-    fillArc(_x, _y, _startAngle, activeEndAngle, _radius, _radius - _thickness, _cFg);
-
-    // 3. Draw Value in Center
-    _gfx->setFont(&FreeSansBold9pt7b);
-    _gfx->setTextSize(2);
-    _gfx->setTextColor(_cFg);
-
-    // Simple centering logic
+    fillArc(_x, _y, _startAngle, _endAngle, _radius, _radius - _thickness, _cFg);       //border
+    fillArc(_x, _y, _startAngle+3, _endAngle-3, _radius-1, _radius - _thickness+1, _cBg);   //empty fill
+    fillArc(_x, _y, _startAngle + 6, activeEndAngle-3, _radius-2, _radius - _thickness+2, _cFg);  //active bar
+    uint8_t textsize = 8;
     int16_t cx = _x;
     int16_t cy = _y;
-
-    String valStr = String((int)value);
-    int16_t txtW = valStr.length() * 12; // approx width for size 2
-    int16_t txtH = 14;
-
-    _gfx->setCursor(cx - (txtW / 2), cy - (txtH / 2));
-    _gfx->print(valStr);
+    int16_t x1, y1;
+    uint16_t w, h;
+     String valStr = String((int)value) + _units;
+    // 3. Draw Value in Center
+    _gfx->setFont(&FreeSansBold9pt7b);
+     _gfx->setTextColor(_cFg);
+    uint16_t centerspace = (_radius - _thickness) * 2;
+     while(((w > centerspace) || (h > centerspace)) && textsize > 0 )
+     {
+        textsize--;
+        _gfx->setTextSize(textsize);
+        _gfx->getTextBounds(valStr, cx, cy, &x1, &y1, &w, &h);
+     }
+    _gfx->setCursor(cx +(cx -x1 ) - (w / 2), cy + (cy - y1) - (h / 2));
+    _gfx->print(valStr );
 }
 
 // --- Sparkline ---

@@ -49,7 +49,7 @@ namespace Config {
     // Select the ePaper driver to use
     // 0: reTerminal E1001 (7.5'' B&W)
     // 1: reTerminal E1002 (7.3'' Color)
-    #define EPD_SELECT 1002
+    #define EPD_SELECT 1001
     // Keeping EPD_SELECT as #define because it might be used for conditional compilation checks #if (EPD_SELECT == ...)
 
     #if (EPD_SELECT == 1001)
