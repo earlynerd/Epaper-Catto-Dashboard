@@ -1,4 +1,5 @@
 #include "core/DataManager.h"
+#include "config.h"
 
 DataManager::DataManager() {}
 
@@ -111,7 +112,9 @@ void DataManager::loadData(PetDataMap &petData)
         {
             SL_Record rec;
             rec.timestamp = recordJson["ts"];
-            rec.weight_lbs = recordJson["w_lb"];
+            if(recordJson["w_lb"]) rec.weight_lbs = recordJson["w_lb"];
+            else if(recordJson["w_g"]) rec.weight_lbs = recordJson["w_g"].as<float>() / Config::GRAMS_PER_POUND;        //rescue old records that used grams
+            else rec.weight_lbs = 0;
             rec.duration_seconds = recordJson["dur_s"];
             rec.PetId = petId;
             petData[petId][rec.timestamp] = rec;
