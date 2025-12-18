@@ -1,8 +1,8 @@
 # Epaper Cat Tracking Dashboard
 ![image of epaper dashboard using E1002 and Petkit account](resources/dashboard_1002_petkit.jpg)
-E1002 Color display, Petkit account
+[reTerminal E1002 Color display](https://wiki.seeedstudio.com/getting_started_with_reterminal_e1002/), Petkit account
 ![image of epaper dashboard using E1001 and Whisker account](resources/dashboard_1001_whisker.jpg)
-E1001 Black and white epaper, Whisker account
+[reTerminal E1001 Black and white epaper](https://wiki.seeedstudio.com/getting_started_with_reterminal_e1001/), Whisker account
 
 ## Simple Multi-Cat Smart Litterbox Dashboard 
 
