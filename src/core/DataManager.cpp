@@ -175,7 +175,7 @@ void DataManager::saveData(const PetDataMap &petData)
         }
     }
 
-    if (serializeJson(doc, file) == 0)
+    if (serializeJsonPretty(doc, file) == 0)
     {
         Serial.println("[DataManager] Failed to write JSON content!");
         file.close();

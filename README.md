@@ -20,7 +20,9 @@ All settings and history data are read from and recorded to the micro SD card. S
 
 The device will host a captive portal to allow you to select your wifi access point and enter the password, and provide your petkit or whisker account login. Alternatively, after first boot, you can eject the micro SD and edit "secrets.json" to provide these details.
 
-API for Petkit is based on PyPetkitApi, while the Whisker/Litter Robot API is based on PyLitterbot. These APIs are not publicly described by either company and might change at any time... The arduino library used for this project is [available here](https://github.com/earlynerd/SmartLitterbox).
+API for Petkit is based on PyPetkitApi, while the Whisker/Litter Robot API is based on PyLitterbot. These APIs are not publicly described by either company and might change at any time... The arduino library adapted from the python projects for use in this project is [available here](https://github.com/earlynerd/SmartLitterbox).
+
+The green indicator LED near the power switch will light up when the device is fetching new data and updating SD card files. Please avoid switching the power off while it is illuminated, to avoid SD card corruption. 
 
 ## Compatibility
 * Seeedstudio reterminal epaper displays E1001 or E1002
@@ -52,15 +54,20 @@ You can specify which widgets to show, their usage source, and their position/si
 *   **Type:ScatterPlot**: Displays historical data points (e.g. Weight).
     *   `dataSource`: "scatter", "temperature_history", or "humidity_history"
 *   **Type:Histogram**: Displays frequency distribution.
-    *   `dataSource`: "interval" (Time between visits) or "duration" (Visit length)
+    *   `dataSource`: "interval" (Time between visits), "duration" (Visit length), or "weight" 
+	*   `p1`: quantity of histogram bins to plot
 *   **Type:LinearGauge**: A horizontal bar grap/gauge.
     *   `dataSource`: "battery", "litter", "waste", "temperature", or "humidity"
+*   **Type:RingGauge**: A circular or arc shaped bargraph
+	*   `dataSource`: "battery", "litter", "waste", "temperature", or "humidity"
+	*   `p1 and p2`: start and end angles of the bargraph
 *   **Type:StatusBox**: (PetKit) Displays "Box FULL" / "Litter LOW" / "Box OK" status with color coding.
     *   `dataSource`: "petkit_status"
 *   **Type:TextLabel**: Displays text or date/time.
     *   `dataSource`: "datetime" (uses `title` as strftime format), or leave empty for static text.
     *   `dataSource`: "temperature" or "humidity" (Displays current value as text)
     *   `title`: Format string like "%m/%d %H:%M"
+
 
 **Example Layout Entry:**
 ```json
@@ -71,3 +78,5 @@ You can specify which widgets to show, their usage source, and their position/si
     "dataSource": "datetime"
 }
 ```
+
+

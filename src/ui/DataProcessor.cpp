@@ -44,7 +44,7 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
             struct tm *thistimestamp = localtime(&record.timestamp);
             time_t ts = mktime(thistimestamp);
             series.scatterPoints.push_back({(float)ts, weight_lbs});
-
+            series.weightValues.push_back(weight_lbs);
             // 2. Duration Histogram Data (Duration in Minutes)
             if (record.duration_seconds > 0.0)
                 series.durationValues.push_back((float)record.duration_seconds / 60.0);

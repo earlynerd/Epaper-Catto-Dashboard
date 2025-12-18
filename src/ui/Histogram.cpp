@@ -74,7 +74,7 @@ void Histogram::processData()
         _minVal -= 1.0f;
         _maxVal += 1.0f;
     }
-    _minVal = 0; // Forcing 0 min-val
+    //_minVal = 0; // Forcing 0 min-val
 
     // Bin the data for each series
     float binWidth = (_maxVal - _minVal) / _numBins;

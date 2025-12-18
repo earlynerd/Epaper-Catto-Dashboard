@@ -1,13 +1,24 @@
 #include <Arduino.h>
 #include "ui/Widget.h"
 #include <math.h>
+#include <Fonts/FreeSansBold24pt7b.h>
+#include <Fonts/FreeSansBold18pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
+
 #include "core/Config.h"
 
 // --- Base Widget ---
 Widget::Widget(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
     : _gfx(gfx), _x(x), _y(y), _w(w), _h(h), _cFg(colorFg), _cBg(colorBg) {}
+
+void Widget::textCenteredCursor(Adafruit_GFX *disp, String text, int16_t x, int16_t y)
+{
+    int16_t x1, y1;
+    uint16_t w, h;
+    disp->getTextBounds(text, x, y, &x1, &y1, &w, &h);
+    disp->setCursor(x + (x - x1) - (w / 2), y + (y - y1) - (h / 2));
+}
 
 // --- Linear Gauge ---
 LinearGauge::LinearGauge(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
@@ -30,10 +41,13 @@ void LinearGauge::showLabel(bool show, String label)
     _label = label;
 }
 
-void LinearGauge::draw(float value) {
+void LinearGauge::draw(float value)
+{
     // Clamp value
-    if (value < _min) value = _min;
-    if (value > _max) value = _max;
+    if (value < _min)
+        value = _min;
+    if (value > _max)
+        value = _max;
 
     // 1. Clear background
     _gfx->fillRect(_x, _y, _w, _h, _cBg);
@@ -50,32 +64,40 @@ void LinearGauge::draw(float value) {
     int16_t barW = (int16_t)((value - _min) * activeW / (_max - _min));
     int16_t barH = (int16_t)((value - _min) * activeH / (_max - _min));
     // 4. Draw the Bar
-    if ((barW > 0) && (!isVertical)) {
+    if ((barW > 0) && (!isVertical))
+    {
         _gfx->fillRect(_x + 2, _y + 2, barW, _h - 4, _cFg);
     }
-    if((barH > 0) && (isVertical)) {
+    if ((barH > 0) && (isVertical))
+    {
         _gfx->fillRect(_x + 2, _y + 2 + activeH - barH, _w - 4, barH, _cFg);
     }
 
     // 5. Inverted Text Label (Pixel-by-Pixel Analysis)
-    if (_showLabel) {
+    if (_showLabel)
+    {
         String valStr = String(value, 0);
         valStr = _label + valStr + _units;
         int16_t x1, y1;
-        uint16_t w, h;
-        GFXfont* fon = (GFXfont*)&FreeSansBold9pt7b;
-        int textsize = 1;
-        _gfx->setFont(fon);
+        uint16_t w = 800, h = 480;
+        GFXfont *fon;
+        int textsize = 0;
+        //_gfx->setFont(fon);
         _gfx->setTextSize(textsize);
-        _gfx->getTextBounds(valStr, 0, 0, &x1, &y1, &w, &h);
-        if((w > _w) || (h > _h)) {
-            fon = NULL;
-            textsize = 0;
+        //_gfx->getTextBounds(valStr, 0, 0, &x1, &y1, &w, &h);
+        const GFXfont *fonts[] = {&FreeSansBold24pt7b, &FreeSansBold18pt7b, &FreeSansBold12pt7b, &FreeSansBold9pt7b};
+        uint16_t textIndex = 0;
+        while (((w > _w - 8) || (h > _h - 8)) && textIndex < 4)
+        {
+            // fon = NULL;
+            // textsize = 0;
+            fon = (GFXfont *)fonts[textIndex];
             _gfx->setFont(fon);
             _gfx->setTextSize(textsize);
             _gfx->getTextBounds(valStr, 0, 0, &x1, &y1, &w, &h);
+            textIndex++;
         }
-        
+
         // Calculate where the text *should* go on the screen (centered)
         int16_t textScreenX = _x + (_w - w) / 2;
         int16_t textScreenY = _y + (_h - h) / 2;
@@ -87,17 +109,20 @@ void LinearGauge::draw(float value) {
         textCanvas.setTextSize(textsize);
         textCanvas.setTextColor(1); // "On" pixels
         // Adjust cursor so the text fills the canvas tightly (negating the bounds offset)
-        textCanvas.setCursor(-x1, -y1); 
+        textCanvas.setCursor(-x1, -y1);
         textCanvas.print(valStr);
 
         // Define the X-limit of the filled bar
         int16_t barLimitX = _x + 2 + barW;
 
         // Iterate through the text canvas pixels
-        for (int16_t j = 0; j < h; j++) {
-            for (int16_t i = 0; i < w; i++) {
+        for (int16_t j = 0; j < h; j++)
+        {
+            for (int16_t i = 0; i < w; i++)
+            {
                 // If this pixel is part of the text
-                if (textCanvas.getPixel(i, j)) {
+                if (textCanvas.getPixel(i, j))
+                {
                     int16_t absX = textScreenX + i;
                     int16_t absY = textScreenY + j;
 
@@ -105,11 +130,12 @@ void LinearGauge::draw(float value) {
                     // Check if this specific pixel lies on top of the filled bar.
                     // If yes -> Draw in Background Color (White)
                     // If no  -> Draw in Foreground Color (Black)
-                    
+
                     bool overBar = (absX >= _x + 2) && (absX < barLimitX);
-                    
+
                     uint16_t finalColor = overBar ? _cBg : _cFg;
-                    if(_cFg == EPD_YELLOW) finalColor = EPD_BLACK;
+                    if (_cFg == EPD_YELLOW)
+                        finalColor = EPD_BLACK;
                     _gfx->drawPixel(absX, absY, finalColor);
                 }
             }
@@ -134,6 +160,12 @@ void RingGauge::setRange(float minVal, float maxVal, String units)
     _units = units;
 }
 
+void RingGauge::showLabel(bool show, String label)
+{
+    _showLabel = show;
+    _label = label;
+}
+
 void RingGauge::setAngleRange(int16_t startAngle, int16_t endAngle)
 {
     _startAngle = startAngle;
@@ -153,12 +185,12 @@ void RingGauge::fillArc(int16_t cx, int16_t cy, int16_t start_angle, int16_t end
     for (float i = start_angle; i < end_angle; i += angle_step)
     {
         float a1 = i * DEG_TO_RAD;
-        float a2 = (i + angle_step)  * DEG_TO_RAD;
+        float a2 = (i + angle_step) * DEG_TO_RAD;
 
         // Ensure we don't over-shoot the end angle
         if (i + angle_step > end_angle)
         {
-            a2 = end_angle  * DEG_TO_RAD;
+            a2 = end_angle * DEG_TO_RAD;
         }
 
         // Outer points
@@ -189,34 +221,51 @@ void RingGauge::draw(float value)
     int16_t totalAngle = _endAngle - _startAngle;
     float ratio = (value - _min) / (_max - _min);
     int16_t activeEndAngle = _startAngle + (int16_t)(totalAngle * ratio);
-
+    int16_t x1, y1;
+    uint16_t w, h;
     // 1. Draw Empty Background Ring (Grey/Dotted or just Outline)
     // For e-paper, we usually just clear the area or draw a thin guide
     // _gfx->drawCircle(_x + _radius, _y + _radius, _radius, _cFg); // Outer border
     // _gfx->drawCircle(_x + _radius, _y + _radius, _radius - _thickness, _cFg); // Inner border
-
+    int16_t arcCenter_x = _x;
+    int16_t arcCenter_y = _y;
+    int16_t arcRadius = _radius;
+    
     // 2. Draw Active Arc
-    fillArc(_x, _y, _startAngle, _endAngle, _radius, _radius - _thickness, _cFg);       //border
-    fillArc(_x, _y, _startAngle+3, _endAngle-3, _radius-1, _radius - _thickness+1, _cBg);   //empty fill
-    fillArc(_x, _y, _startAngle + 6, activeEndAngle-3, _radius-2, _radius - _thickness+2, _cFg);  //active bar
-    uint8_t textsize = 8;
-    int16_t cx = _x;
-    int16_t cy = _y;
-    int16_t x1, y1;
-    uint16_t w, h;
-     String valStr = String((int)value) + _units;
+    fillArc(arcCenter_x, arcCenter_y, _startAngle, _endAngle, arcRadius, arcRadius - _thickness, _cFg);                      // border
+    fillArc(arcCenter_x, arcCenter_y, _startAngle + 3, _endAngle - 3, arcRadius - 1, arcRadius - _thickness + 1, _cBg);      // empty fill
+    fillArc(arcCenter_x, arcCenter_y, _startAngle + 3, activeEndAngle - 3, arcRadius - 1, arcRadius - _thickness + 1, _cFg); // active bar
+    const GFXfont *fonts[] = {&FreeSansBold24pt7b, &FreeSansBold18pt7b, &FreeSansBold12pt7b, &FreeSansBold9pt7b};
+    uint8_t textIndex = 0;
+
+
+    String valStr = String((int)value) + _units;
     // 3. Draw Value in Center
     _gfx->setFont(&FreeSansBold9pt7b);
-     _gfx->setTextColor(_cFg);
+    _gfx->setTextColor(_cFg);
+    _gfx->setTextSize(0);
     uint16_t centerspace = (_radius - _thickness) * 2;
-     while(((w > centerspace) || (h > centerspace)) && textsize > 0 )
-     {
-        textsize--;
-        _gfx->setTextSize(textsize);
-        _gfx->getTextBounds(valStr, cx, cy, &x1, &y1, &w, &h);
-     }
-    _gfx->setCursor(cx +(cx -x1 ) - (w / 2), cy + (cy - y1) - (h / 2));
-    _gfx->print(valStr );
+    while (((w > centerspace) || (h > centerspace)) && textIndex < 4)
+    {
+        _gfx->setFont(fonts[textIndex]);
+        _gfx->getTextBounds(valStr, arcCenter_x, arcCenter_y, &x1, &y1, &w, &h);
+        textIndex++;
+    }
+    textCenteredCursor(_gfx, valStr, _x, _y);
+    //_gfx->setCursor(cx +(cx -x1 ) - (w / 2), cy + (cy - y1) - (h / 2));
+    _gfx->print(valStr);
+
+    _gfx->setFont(&FreeSansBold9pt7b);
+    _gfx->setTextColor(_cFg);
+    _gfx->setTextSize(0);
+    if (_showLabel)
+    {
+        _gfx->getTextBounds(_label, arcCenter_x, arcCenter_y, &x1, &y1, &w, &h);
+        //arcCenter_y -= (h+3);
+        //arcRadius -= h;
+        textCenteredCursor(_gfx, _label, arcCenter_x, _y+_radius/2 + h + 2);
+        _gfx->print(_label);
+    }
 }
 
 // --- Sparkline ---
@@ -300,9 +349,8 @@ void Sparkline::draw(float currentVal)
     }
 }
 
-
 // --- BatteryGauge Implementation ---
-BatteryGauge::BatteryGauge(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
+BatteryGauge::BatteryGauge(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colorFg, uint16_t colorBg)
     : LinearGauge(gfx, x, y, w, h, colorFg, colorBg)
 {
 }
@@ -314,8 +362,8 @@ void BatteryGauge::draw(float value)
 
     // Draw Tip relative to the gauge
     int16_t tipX = _x + _w;
-    int16_t tipY = _y + (_h / 4); 
-    int16_t tipH = _h / 2; 
+    int16_t tipY = _y + (_h / 4);
+    int16_t tipH = _h / 2;
 
     // Adjust to match "nub" look
     // 3 lines thick

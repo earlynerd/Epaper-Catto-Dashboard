@@ -11,6 +11,8 @@ public:
     virtual void draw(float value) = 0; // Pure virtual
 
 protected:
+    //helper for centering text 
+    static void textCenteredCursor(Adafruit_GFX* disp, String text, int16_t x, int16_t y);   
     Adafruit_GFX* _gfx;
     int16_t _x, _y, _w, _h;
     uint16_t _cFg, _cBg;
@@ -44,12 +46,13 @@ public:
     void setRange(float minVal, float maxVal, String units);
     void setAngleRange(int16_t startAngle, int16_t endAngle); 
     void draw(float value) override;
-
+    void showLabel(bool show, String label);
 private:
     int16_t _radius, _thickness;
     float _min, _max;
     int16_t _startAngle, _endAngle;
-
+    bool _showLabel;
+    String _label;
     // Helper to draw filled arcs using triangles
     void fillArc(int16_t x, int16_t y, int16_t start_angle, int16_t end_angle, int16_t r_outer, int16_t r_inner, uint16_t color);
 };

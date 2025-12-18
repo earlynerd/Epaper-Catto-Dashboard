@@ -12,6 +12,7 @@ struct ProcessedSeries {
     std::vector<DataPoint> scatterPoints; // For ScatterPlot
     std::vector<float> intervalValues;    // For Interval Histogram
     std::vector<float> durationValues;    // For Duration Histogram
+    std::vector<float> weightValues;      // For weight histogram
 };
 
 struct DashboardData {

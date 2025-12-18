@@ -75,6 +75,8 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 
             plot.setLabels(titleBuf, "Date", "Value"); // Generic Y label
             int xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
+            if (w.w <= 400)
+                xticks = xticks / 2;
             int yticks = w.h / PIXELS_PER_TICK;
 
             if (w.dataSource == "scatter" || w.dataSource == "")
@@ -111,18 +113,23 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             hist.setTitle(w.title.c_str());
             hist.setNormalization(true);
 
-            // Apply bin count logic (could be in config)
-            if (pets.size() == 1)
-                hist.setBinCount(32);
+            if (w.p1 != 0)
+                hist.setBinCount(w.p1);
             else
-                hist.setBinCount(12);
-
+            {
+                if ((pets.size() == 1) && (w.w >=400))
+                    hist.setBinCount(32);
+                else
+                    hist.setBinCount(14);
+            }
             for (const auto &series : data.series)
             {
                 if (w.dataSource == "interval")
                     hist.addSeries(series.name.c_str(), series.intervalValues, series.color, series.bgColor);
                 else if (w.dataSource == "duration")
                     hist.addSeries(series.name.c_str(), series.durationValues, series.color, series.bgColor);
+                else if (w.dataSource == "weight")
+                    hist.addSeries(series.name.c_str(), series.weightValues, series.color, series.bgColor);
             }
             hist.plot();
         }
@@ -235,6 +242,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             RingGauge rg(_display, w.x, w.y, w.w, w.h, color, EPD_WHITE);
             rg.setRange(w.min, w.max, w.unit);
             rg.setAngleRange(w.p1, w.p2);
+            rg.showLabel(true, w.title);
             rg.draw(val);
         }
         else if (w.type == "TextLabel")

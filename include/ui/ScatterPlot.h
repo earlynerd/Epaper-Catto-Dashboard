@@ -12,7 +12,7 @@
 #include <GxEPD2_BW.h>
 #endif
 #include <Fonts/FreeMonoBold9pt7b.h>
-#define PIXELS_PER_TICK     18
+#define PIXELS_PER_TICK     24
 
 // A simple struct to hold a single data point
 struct DataPoint {
