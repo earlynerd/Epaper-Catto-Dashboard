@@ -150,7 +150,7 @@ void Histogram::drawAxes()
     _plotY = _y + PADDING_TOP;
     _plotW = _w - PADDING_LEFT - PADDING_RIGHT;
     _plotH = _h - PADDING_TOP - PADDING_BOTTOM;
-
+    float barSlotWidth = (float)_plotW / (float)_numBins;
     // Draw axes lines
     _gfx->drawRect(_plotX, _plotY, _plotW, _plotH, AXIS_COLOR);
 
@@ -214,23 +214,33 @@ void Histogram::drawAxes()
 
     for (int i = 0; i <= numXTicks; ++i)
     {
-        int16_t xPos = _plotX + (i * _plotW / numXTicks);
-        if (i == numXTicks)
-            _gfx->drawLine(_plotX + _plotW - 1, _plotY + _plotH, _plotX + _plotW - 1, _plotY + _plotH + 5, AXIS_COLOR);
-        else
+        //int16_t xPos = _plotX + (i * _plotW / numXTicks);
+        float labelVal = _minVal + (i * (_maxVal - _minVal) / numXTicks);
+        int labelint = labelVal * 100.0;
+        labelVal = (float)labelint/100.0;
+        int16_t xPos = (int16_t)floatMap(labelVal, _minVal, _maxVal, _plotX , _plotX + _plotW );
+        if((xPos < _plotX-1) || (xPos > _plotX + _plotW)) continue;
+        //if (i == numXTicks)
+        //    _gfx->drawLine(_plotX + _plotW - 1, _plotY + _plotH, _plotX + _plotW - 1, _plotY + _plotH + 5, AXIS_COLOR);
+       // else
             _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 5, AXIS_COLOR);
 
-        float labelVal = _minVal + (i * (_maxVal - _minVal) / numXTicks);
+  
         
         char label[32];
         dtostrf(labelVal, 4, 1, label);
-        String lbl = label;
-        if(lbl.equals("0.0") || lbl.equals("-0.0")) drawDashedLine(xPos, _plotY + _plotH, xPos, _plotY , AXIS_COLOR, 2, 2);
+        //String lbl = label;
+        //if(lbl.equals("0.0") || lbl.equals("-0.0")) drawDashedLine(xPos, _plotY + _plotH, xPos, _plotY , AXIS_COLOR, 2, 2);
         int16_t tx, ty;
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
         _gfx->setCursor(xPos - tw / 2, _plotY + _plotH + 8); // Adjusted y
         _gfx->print(label);
+    }
+    if((_minVal < 0.0 ) && (_maxVal > 0.0))                 //if zero is in the range, draw a dashed vertical line at zero
+    {
+        int16_t zeroPos = (int16_t)floatMap(0.0, _minVal, _maxVal, _plotX , _plotX + _plotW );
+        drawDashedLine(zeroPos, _plotY + _plotH, zeroPos, _plotY , AXIS_COLOR, 2, 2);
     }
     if (_xAxisLabel)
     {
@@ -256,17 +266,21 @@ void Histogram::drawBars()
     int numSeries = _series.size();
     float barSlotWidth = (float)_plotW / (float)_numBins;
     //float barPadding = barSlotWidth * 0.1f;                   // 10% of the slot on each side is padding
-    float barPadding = 2;
+    float barPadding = 1;
     float drawableBarWidth = barSlotWidth - (2 * barPadding); // The total width for the bar(s) in a slot
     float barWidth = round(drawableBarWidth / numSeries);     // Width of a single bar
 
     if (barWidth < 1)
         barWidth = 1;
-
+    float binWidth = (_maxVal - _minVal) / _numBins;
+    
     for (int i = 0; i < _numBins; ++i)
     {
         // Calculate the starting X for this bin slot
-        int16_t binStartX = _plotX + (i * barSlotWidth) + barPadding;
+        
+        int16_t binCenterX = floatMap(_minVal + i * binWidth + binWidth/2 , _minVal, _maxVal, _plotX, _plotX + _plotW );
+        //int16_t binStartX = _plotX + (i * barSlotWidth) + barPadding;
+        int16_t binStartX = binCenterX - (barSlotWidth / 2) + barPadding;
 
         for (int j = 0; j < numSeries; ++j)
         {
@@ -486,4 +500,16 @@ void Histogram::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, u
         // Move the current position to the start of the next dash
         currentPos += cycleLength;
     }
+}
+
+float Histogram::floatMap(float x, float in_min, float in_max, float out_min, float out_max)
+{
+    const float run = in_max - in_min;
+    if(run == 0){
+        //log_e("map(): Invalid input range, min == max");
+        return 0.0; // AVR returns -1, SAM returns 0
+    }
+    const float rise = out_max - out_min;
+    const float delta = x - in_min;
+    return (delta * rise) / run + out_min;
 }

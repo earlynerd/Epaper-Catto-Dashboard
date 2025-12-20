@@ -23,7 +23,7 @@ public:
         const std::vector<ColorPair>& colors
     );
 private:
-    static std::vector<float> getDailyWeightChangeRates(std::vector<DataPoint> scatterPoints, int smoothingWindow = 5);
+    static std::vector<float> getWeightChangeRates(std::vector<DataPoint> scatterPoints, int intervalDays, int smoothingWindow = 5);
 
 };
 

@@ -61,7 +61,7 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
 
             lastTimestamp = record.timestamp;
         }
-        series.deltaWeightValues = getDailyWeightChangeRates(series.scatterPoints, 5);
+        series.deltaWeightValues = getWeightChangeRates(series.scatterPoints, 30, 5);
         data.series.push_back(series);
         idx++;
     }
@@ -109,7 +109,7 @@ DashboardData DataProcessor::processEnvData(const std::vector<env_data>& envData
     return data;
 }
 
-std::vector<float> DataProcessor::getDailyWeightChangeRates(std::vector<DataPoint> scatterPoints, int smoothingWindow) {
+std::vector<float> DataProcessor::getWeightChangeRates(std::vector<DataPoint> scatterPoints, int intervalDays, int smoothingWindow) {
     if (scatterPoints.size() < 2) return {};
 
     // 1. Ensure chronological order
@@ -118,8 +118,8 @@ std::vector<float> DataProcessor::getDailyWeightChangeRates(std::vector<DataPoin
     });
 
     // 2. Simple Centered Smoothing
-    // Even with cleaned data, cat movement causes "jitter". Smoothing 3-5 points 
-    // helps find the "true" weight of that session.
+    // Even with cleaned data, various sources of noise cause "jitter". Smoothing 3-5 points 
+    // helps find the "true" weight 
     std::vector<float> smoothedWeights;
     int n = scatterPoints.size();
     int radius = smoothingWindow / 2;
@@ -136,7 +136,7 @@ std::vector<float> DataProcessor::getDailyWeightChangeRates(std::vector<DataPoin
         smoothedWeights.push_back(sum / count);
     }
 
-    // 3. Calculate Rate of Change Normalized to "Per Day"
+    // 3. Calculate Rate of Change Normalized to intervalDays
     std::vector<float> dailyRates;
     const double SECONDS_IN_DAY = 86400.0;
 
@@ -149,7 +149,8 @@ std::vector<float> DataProcessor::getDailyWeightChangeRates(std::vector<DataPoin
         if (timeDiff > 3600.0) { 
             // Result is: (Change in Weight / Seconds) * Seconds in a Day
             float ratePerDay = (float)((weightDiff / timeDiff) * SECONDS_IN_DAY);
-            dailyRates.push_back(ratePerDay);
+            float ratePerInterval = intervalDays * ratePerDay;
+            dailyRates.push_back(ratePerInterval);
         }
     }
 
