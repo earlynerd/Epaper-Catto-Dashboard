@@ -35,8 +35,13 @@ void Histogram::plot()
 {
     if (_series.empty())
     {
-        _gfx->setCursor(_x + 10, _y + 20);
+        
+        _gfx->setFont(NULL);
+        _gfx->setTextColor(EPD_BLACK);
+        _gfx->setTextSize(0);
+        _gfx->setCursor(_x + PADDING_LEFT + 10, _y + PADDING_TOP + 10);
         _gfx->print("No data to plot.");
+        _gfx->drawRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_BLACK);
         return;
     }
 
@@ -216,9 +221,11 @@ void Histogram::drawAxes()
             _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 5, AXIS_COLOR);
 
         float labelVal = _minVal + (i * (_maxVal - _minVal) / numXTicks);
+        
         char label[32];
         dtostrf(labelVal, 4, 1, label);
-
+        String lbl = label;
+        if(lbl.equals("0.0") || lbl.equals("-0.0")) drawDashedLine(xPos, _plotY + _plotH, xPos, _plotY , AXIS_COLOR, 2, 2);
         int16_t tx, ty;
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
@@ -432,4 +439,51 @@ void Histogram::drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint
         checker = !checker;
     }
     _gfx->drawRect(x, y, w, h, color1);
+}
+
+void Histogram::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color, uint16_t dashLength, uint16_t spaceLength)
+{
+    // Ensure dash and space lengths are positive to avoid infinite loops
+    if (dashLength == 0 || spaceLength == 0)
+    {
+        _gfx->drawLine(x0, y0, x1, y1, color);
+        return;
+    }
+
+    // Calculate the total length of the line
+    float dx = x1 - x0;
+    float dy = y1 - y0;
+    float totalLength = sqrt(dx * dx + dy * dy);
+
+    // Calculate the length of one dash-space cycle
+    float cycleLength = dashLength + spaceLength;
+
+    // Start at the beginning of the line
+    float currentPos = 0.0;
+
+    while (currentPos < totalLength)
+    {
+        // Calculate the starting point of the current dash
+        float startX = x0 + (dx * currentPos) / totalLength;
+        float startY = y0 + (dy * currentPos) / totalLength;
+
+        // Determine the end position of the dash
+        float dashEndPos = currentPos + dashLength;
+
+        // If the dash goes past the end of the line, clamp it
+        if (dashEndPos > totalLength)
+        {
+            dashEndPos = totalLength;
+        }
+
+        // Calculate the ending point of the current dash
+        float endX = x0 + (dx * dashEndPos) / totalLength;
+        float endY = y0 + (dy * dashEndPos) / totalLength;
+
+        // Draw the dash segment
+        _gfx->drawLine(round(startX), round(startY), round(endX), round(endY), color);
+
+        // Move the current position to the start of the next dash
+        currentPos += cycleLength;
+    }
 }

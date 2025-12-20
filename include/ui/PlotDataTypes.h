@@ -9,10 +9,11 @@ struct ProcessedSeries {
     String name;
     uint16_t color;
     uint16_t bgColor;
-    std::vector<DataPoint> scatterPoints; // For ScatterPlot
-    std::vector<float> intervalValues;    // For Interval Histogram
-    std::vector<float> durationValues;    // For Duration Histogram
-    std::vector<float> weightValues;      // For weight histogram
+    std::vector<DataPoint> scatterPoints;       // For ScatterPlot
+    std::vector<float> intervalValues;          // For Interval Histogram
+    std::vector<float> durationValues;          // For Duration Histogram
+    std::vector<float> weightValues;            // For weight histogram
+    std::vector<float> deltaWeightValues;      // For change-in-weight histogram
 };
 
 struct DashboardData {

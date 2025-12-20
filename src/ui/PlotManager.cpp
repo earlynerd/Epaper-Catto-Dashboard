@@ -74,11 +74,19 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                 strncpy(titleBuf, w.title.c_str(), sizeof(titleBuf));
 
             plot.setLabels(titleBuf, "Date", "Value"); // Generic Y label
-            int xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
-            if (w.w <= 400)
-                xticks = xticks / 2;
-            int yticks = w.h / PIXELS_PER_TICK;
-
+            int xticks=8, yticks=8;
+            if (w.p1 > 0 && w.p2 > 0)
+            {
+                xticks = w.p1;
+                yticks = w.p2;
+            }
+            else
+            {
+                xticks = (range.type == LAST_7_DAYS) ? 10 : 18;
+                if (w.w <= 400)
+                    xticks = xticks / 2;
+                yticks = w.h / PIXELS_PER_TICK;
+            }
             if (w.dataSource == "scatter" || w.dataSource == "")
             {
                 for (const auto &series : data.series)
@@ -112,12 +120,12 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             Histogram hist(_display, w.x, w.y, w.w, w.h);
             hist.setTitle(w.title.c_str());
             hist.setNormalization(true);
-
+            
             if (w.p1 != 0)
                 hist.setBinCount(w.p1);
             else
             {
-                if ((pets.size() == 1) && (w.w >=400))
+                if ((pets.size() == 1) && (w.w >= 400))
                     hist.setBinCount(32);
                 else
                     hist.setBinCount(14);
@@ -130,6 +138,8 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
                     hist.addSeries(series.name.c_str(), series.durationValues, series.color, series.bgColor);
                 else if (w.dataSource == "weight")
                     hist.addSeries(series.name.c_str(), series.weightValues, series.color, series.bgColor);
+                else if (w.dataSource == "weight_change")
+                    hist.addSeries(series.name.c_str(), series.deltaWeightValues, series.color, series.bgColor);
             }
             hist.plot();
         }

@@ -22,6 +22,9 @@ public:
         const DateRangeInfo& range,
         const std::vector<ColorPair>& colors
     );
+private:
+    static std::vector<float> getDailyWeightChangeRates(std::vector<DataPoint> scatterPoints, int smoothingWindow = 5);
+
 };
 
 #endif // DATA_PROCESSOR_H

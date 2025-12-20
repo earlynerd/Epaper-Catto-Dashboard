@@ -54,7 +54,7 @@ You can specify which widgets to show, their usage source, and their position/si
 *   **Type:ScatterPlot**: Displays historical data points (e.g. Weight).
     *   `dataSource`: "scatter", "temperature_history", or "humidity_history"
 *   **Type:Histogram**: Displays frequency distribution.
-    *   `dataSource`: "interval" (Time between visits), "duration" (Visit length), or "weight" 
+    *   `dataSource`: "interval" (Time between visits), "duration" (Visit length), "weight" (raw weight measurements), or "weight_change" (filtered weight change per day)
 	*   `p1`: quantity of histogram bins to plot
 *   **Type:LinearGauge**: A horizontal bar grap/gauge.
     *   `dataSource`: "battery", "litter", "waste", "temperature", or "humidity"

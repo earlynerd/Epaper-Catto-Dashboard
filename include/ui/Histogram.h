@@ -86,6 +86,7 @@ private:
     void drawPatternRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
     void drawHatchRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
     void drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
+    void drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color, uint16_t dashLength, uint16_t spaceLength);
     Adafruit_GFX* _gfx;
     int16_t _x, _y, _w, _h; // Overall widget position and size
 

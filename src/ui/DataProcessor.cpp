@@ -1,5 +1,8 @@
 #include "ui/DataProcessor.h"
 #include <time.h>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 
 DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets, 
                                      const PetDataMap &allPetData, 
@@ -37,13 +40,16 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
             
             // Filter by date range
             if (record.timestamp < timeStart)
+            {
                 continue;
+            }
 
             // 1. Scatter Plot Data (Weight vs Time)
             float weight_lbs = (float)record.weight_lbs;
             struct tm *thistimestamp = localtime(&record.timestamp);
             time_t ts = mktime(thistimestamp);
             series.scatterPoints.push_back({(float)ts, weight_lbs});
+            //if(series.weightValues.size() > 0) series.deltaWeightValues.push_back(weight_lbs - series.weightValues.back());
             series.weightValues.push_back(weight_lbs);
             // 2. Duration Histogram Data (Duration in Minutes)
             if (record.duration_seconds > 0.0)
@@ -55,7 +61,7 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
 
             lastTimestamp = record.timestamp;
         }
-
+        series.deltaWeightValues = getDailyWeightChangeRates(series.scatterPoints, 5);
         data.series.push_back(series);
         idx++;
     }
@@ -101,4 +107,51 @@ DashboardData DataProcessor::processEnvData(const std::vector<env_data>& envData
     data.series.push_back(humidSeries);
 
     return data;
+}
+
+std::vector<float> DataProcessor::getDailyWeightChangeRates(std::vector<DataPoint> scatterPoints, int smoothingWindow) {
+    if (scatterPoints.size() < 2) return {};
+
+    // 1. Ensure chronological order
+    std::sort(scatterPoints.begin(), scatterPoints.end(), [](const DataPoint& a, const DataPoint& b) {
+        return a.x < b.x;
+    });
+
+    // 2. Simple Centered Smoothing
+    // Even with cleaned data, cat movement causes "jitter". Smoothing 3-5 points 
+    // helps find the "true" weight of that session.
+    std::vector<float> smoothedWeights;
+    int n = scatterPoints.size();
+    int radius = smoothingWindow / 2;
+
+    for (int i = 0; i < n; ++i) {
+        float sum = 0.0f;
+        int count = 0;
+        for (int j = i - radius; j <= i + radius; ++j) {
+            if (j >= 0 && j < n) {
+                sum += scatterPoints[j].y;
+                count++;
+            }
+        }
+        smoothedWeights.push_back(sum / count);
+    }
+
+    // 3. Calculate Rate of Change Normalized to "Per Day"
+    std::vector<float> dailyRates;
+    const double SECONDS_IN_DAY = 86400.0;
+
+    for (size_t i = 1; i < smoothedWeights.size(); ++i) {
+        float weightDiff = smoothedWeights[i] - smoothedWeights[i - 1];
+        double timeDiff = scatterPoints[i].x - scatterPoints[i - 1].x;
+
+        // If the box records multiple times in one hour, the "rate" can be 
+        // extremely volatile. We look for meaningful time gaps (e.g., > 1 hour).
+        if (timeDiff > 3600.0) { 
+            // Result is: (Change in Weight / Seconds) * Seconds in a Day
+            float ratePerDay = (float)((weightDiff / timeDiff) * SECONDS_IN_DAY);
+            dailyRates.push_back(ratePerDay);
+        }
+    }
+
+    return dailyRates;
 }
