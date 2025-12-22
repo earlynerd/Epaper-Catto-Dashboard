@@ -204,9 +204,9 @@ void App::updateData(bool isViewUpdate) {
  * @param status The current status of the litterbox.
  * @param wifiSuccess Whether the last WiFi connection was successful.
  */
-void App::renderView(int rangeIndex, const SL_Status& status, bool wifiSuccess) {
+void App::renderView(int rangeIndex, const SL_Status& status, float vbat) {
     if (rangeIndex >= 0 && rangeIndex < Date_Range_Max) {
-        plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, wifiSuccess);
+        plotManager->renderDashboard(allPets, allPetData, dateRangeInfo[rangeIndex], status, vbat);
         display->display();
         display->hibernate();
     }
@@ -257,7 +257,9 @@ void App::enterSleep() {
 void App::setup()
 {
   initHardware();
+  float vbattery = ((float)analogReadMilliVolts(Config::Pins::BATTERY_ADC)/ 1000.0) * 2.0;
   initStorage();
+  
 
   int rangeIndex = dataManager.getPlotRange();
   rtc.begin();
@@ -297,7 +299,7 @@ void App::setup()
   bool wifiSuccess = false; // Simplified for now, logic inside updateData needs to bubble up or update state
 
   // Render Logic
-  renderView(rangeIndex, status, wifiSuccess);
+  renderView(rangeIndex, status, vbattery);
   
   // Sleep
   enterSleep();

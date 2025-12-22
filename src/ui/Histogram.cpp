@@ -35,7 +35,7 @@ void Histogram::plot()
 {
     if (_series.empty())
     {
-        
+
         _gfx->setFont(NULL);
         _gfx->setTextColor(EPD_BLACK);
         _gfx->setTextSize(0);
@@ -45,13 +45,13 @@ void Histogram::plot()
         return;
     }
 
-    //Pre-process data to find ranges and frequencies
+    // Pre-process data to find ranges and frequencies
     processData();
 
-    //Draw the histogram bars
+    // Draw the histogram bars
     drawBars();
 
-    //Draw the chart framework
+    // Draw the chart framework
     drawAxes();
 }
 
@@ -109,13 +109,17 @@ void Histogram::processData()
             float maxBin = (float)*std::max_element(s.bins.begin(), s.bins.end());
             if (_normalize)
             {
-                if (s.data.size() > 0) {
+                if (s.data.size() > 0)
+                {
                     s.seriesMaxFreq = (int)((maxBin * 100.0f) / s.data.size());
-                } else {
+                }
+                else
+                {
                     s.seriesMaxFreq = 0;
                 }
             }
-            else s.seriesMaxFreq = *std::max_element(s.bins.begin(), s.bins.end());
+            else
+                s.seriesMaxFreq = *std::max_element(s.bins.begin(), s.bins.end());
         }
 
         // Update the global max frequency (only used if not normalizing)
@@ -175,9 +179,9 @@ void Histogram::drawAxes()
     {
         int16_t yPos = _plotY + _plotH - (i * _plotH / numYTicks);
         if (i == 0)
-            _gfx->drawLine(_plotX - 5, _plotY + _plotH - 1, _plotX, _plotY + _plotH - 1, AXIS_COLOR);
+            _gfx->drawLine(_plotX - 3, _plotY + _plotH - 1, _plotX, _plotY + _plotH - 1, AXIS_COLOR);
         else
-            _gfx->drawLine(_plotX - 5, yPos, _plotX, yPos, AXIS_COLOR);
+            _gfx->drawLine(_plotX - 3, yPos, _plotX, yPos, AXIS_COLOR);
 
         int labelVal;
         char label[10];
@@ -196,7 +200,7 @@ void Histogram::drawAxes()
         int16_t tx, ty;
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
-        _gfx->setCursor(_plotX - tw - 8, yPos - th / 2); // Adjusted y
+        _gfx->setCursor(_plotX - tw - 6, yPos - th / 2); // Adjusted y
         _gfx->setTextColor(TEXT_COLOR);                  // Use standard text color
         _gfx->print(label);
     }
@@ -214,33 +218,32 @@ void Histogram::drawAxes()
 
     for (int i = 0; i <= numXTicks; ++i)
     {
-        //int16_t xPos = _plotX + (i * _plotW / numXTicks);
+        // int16_t xPos = _plotX + (i * _plotW / numXTicks);
         float labelVal = _minVal + (i * (_maxVal - _minVal) / numXTicks);
         int labelint = labelVal * 100.0;
-        labelVal = (float)labelint/100.0;
-        int16_t xPos = (int16_t)floatMap(labelVal, _minVal, _maxVal, _plotX , _plotX + _plotW );
-        if((xPos < _plotX-1) || (xPos > _plotX + _plotW)) continue;
-        //if (i == numXTicks)
-        //    _gfx->drawLine(_plotX + _plotW - 1, _plotY + _plotH, _plotX + _plotW - 1, _plotY + _plotH + 5, AXIS_COLOR);
-       // else
-            _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 5, AXIS_COLOR);
+        labelVal = (float)labelint / 100.0;
+        int16_t xPos = (int16_t)floatMap(labelVal, _minVal, _maxVal, _plotX, _plotX + _plotW);
+        if ((xPos < _plotX - 1) || (xPos > _plotX + _plotW))
+            continue;
+        // if (i == numXTicks)
+        //     _gfx->drawLine(_plotX + _plotW - 1, _plotY + _plotH, _plotX + _plotW - 1, _plotY + _plotH + 5, AXIS_COLOR);
+        // else
+        _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 2, AXIS_COLOR);
 
-  
-        
         char label[32];
         dtostrf(labelVal, 4, 1, label);
-        //String lbl = label;
-        //if(lbl.equals("0.0") || lbl.equals("-0.0")) drawDashedLine(xPos, _plotY + _plotH, xPos, _plotY , AXIS_COLOR, 2, 2);
+        // String lbl = label;
+        // if(lbl.equals("0.0") || lbl.equals("-0.0")) drawDashedLine(xPos, _plotY + _plotH, xPos, _plotY , AXIS_COLOR, 2, 2);
         int16_t tx, ty;
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
-        _gfx->setCursor(xPos - tw / 2, _plotY + _plotH + 8); // Adjusted y
+        _gfx->setCursor(xPos - tw / 2, _plotY + _plotH + 5); 
         _gfx->print(label);
     }
-    if((_minVal < 0.0 ) && (_maxVal > 0.0))                 //if zero is in the range, draw a dashed vertical line at zero
+    if ((_minVal < 0.0) && (_maxVal > 0.0)) // if zero is in the range, draw a dashed vertical line at zero
     {
-        int16_t zeroPos = (int16_t)floatMap(0.0, _minVal, _maxVal, _plotX , _plotX + _plotW );
-        drawDashedLine(zeroPos, _plotY + _plotH, zeroPos, _plotY , AXIS_COLOR, 2, 2);
+        int16_t zeroPos = (int16_t)floatMap(0.0, _minVal, _maxVal, _plotX, _plotX + _plotW);
+        drawDashedLine(zeroPos, _plotY + _plotH, zeroPos, _plotY, AXIS_COLOR, 2, 2);
     }
     if (_xAxisLabel)
     {
@@ -265,7 +268,7 @@ void Histogram::drawBars()
 
     int numSeries = _series.size();
     float barSlotWidth = (float)_plotW / (float)_numBins;
-    //float barPadding = barSlotWidth * 0.1f;                   // 10% of the slot on each side is padding
+    // float barPadding = barSlotWidth * 0.1f;                   // 10% of the slot on each side is padding
     float barPadding = 1;
     float drawableBarWidth = barSlotWidth - (2 * barPadding); // The total width for the bar(s) in a slot
     float barWidth = round(drawableBarWidth / numSeries);     // Width of a single bar
@@ -273,13 +276,13 @@ void Histogram::drawBars()
     if (barWidth < 1)
         barWidth = 1;
     float binWidth = (_maxVal - _minVal) / _numBins;
-    
+
     for (int i = 0; i < _numBins; ++i)
     {
         // Calculate the starting X for this bin slot
-        
-        int16_t binCenterX = floatMap(_minVal + i * binWidth + binWidth/2 , _minVal, _maxVal, _plotX, _plotX + _plotW );
-        //int16_t binStartX = _plotX + (i * barSlotWidth) + barPadding;
+
+        int16_t binCenterX = floatMap(_minVal + i * binWidth + binWidth / 2, _minVal, _maxVal, _plotX, _plotX + _plotW);
+        // int16_t binStartX = _plotX + (i * barSlotWidth) + barPadding;
         int16_t binStartX = binCenterX - (barSlotWidth / 2) + barPadding;
 
         for (int j = 0; j < numSeries; ++j)
@@ -293,9 +296,10 @@ void Histogram::drawBars()
                 if (s.seriesMaxFreq > 0)
                 {
                     // Calculate height as a percentage of this series's max
-                    if (s.data.size() > 0) {
+                    if (s.data.size() > 0)
+                    {
                         float freq = (static_cast<float>(s.bins[i]) / s.data.size()) * 100.0;
-                         barH = static_cast<int16_t>((freq / _maxFreq) * _plotH);
+                        barH = static_cast<int16_t>((freq / _maxFreq) * _plotH);
                     }
                 }
             }
@@ -386,7 +390,7 @@ void Histogram::drawLegend()
     }
 }
 
-void Histogram::drawPatternRect(int16_t x, int16_t y, int16_t w, int16_t h,  uint16_t color1, uint16_t color2)
+void Histogram::drawPatternRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2)
 {
     _gfx->fillRect(x, y, w, h, color2);
     _gfx->drawRect(x, y, w, h, color1);
@@ -412,7 +416,7 @@ void Histogram::drawPatternRect(int16_t x, int16_t y, int16_t w, int16_t h,  uin
     }
 }
 
-void Histogram::drawHatchRect(int16_t x, int16_t y, int16_t w, int16_t h,  uint16_t color1, uint16_t color2)
+void Histogram::drawHatchRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2)
 {
     _gfx->fillRect(x, y, w, h, color2);
     _gfx->drawRect(x, y, w, h, color1);
@@ -448,7 +452,8 @@ void Histogram::drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint
         {
             if (checker ^ ((x1 - x) % 2))
                 _gfx->drawPixel(x1, y1, color1);
-            else _gfx->drawPixel(x1, y1, color2);
+            else
+                _gfx->drawPixel(x1, y1, color2);
         }
         checker = !checker;
     }
@@ -457,6 +462,17 @@ void Histogram::drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint
 
 void Histogram::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color, uint16_t dashLength, uint16_t spaceLength)
 {
+
+    if (y0 > y1)
+    {
+        y0 -= 1;
+        y0 += 1;
+    }
+    else if (y1 > y0)
+    {
+        y0 += 1;
+        y1 -= 1;
+    }
     // Ensure dash and space lengths are positive to avoid infinite loops
     if (dashLength == 0 || spaceLength == 0)
     {
@@ -482,31 +498,50 @@ void Histogram::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, u
         float startY = y0 + (dy * currentPos) / totalLength;
 
         // Determine the end position of the dash
-        float dashEndPos = currentPos + dashLength;
+        float spaceEndPos = currentPos + spaceLength;
 
-        // If the dash goes past the end of the line, clamp it
-        if (dashEndPos > totalLength)
+        if (spaceEndPos > totalLength)
         {
-            dashEndPos = totalLength;
+            spaceEndPos = totalLength;
         }
+        // If the dash goes past the end of the line, clamp it
 
         // Calculate the ending point of the current dash
-        float endX = x0 + (dx * dashEndPos) / totalLength;
-        float endY = y0 + (dy * dashEndPos) / totalLength;
+        float endX = x0 + (dx * spaceEndPos) / totalLength;
+        float endY = y0 + (dy * spaceEndPos) / totalLength;
 
         // Draw the dash segment
-        _gfx->drawLine(round(startX), round(startY), round(endX), round(endY), color);
+        _gfx->drawLine(round(startX), round(startY), round(endX), round(endY), EPD_WHITE);
+        currentPos += spaceLength;
+        if (currentPos < totalLength)
+        {
+            startX = endX;
+            startY = endY;
 
-        // Move the current position to the start of the next dash
-        currentPos += cycleLength;
+            float dashEndPos = currentPos + dashLength;
+
+            if (dashEndPos > totalLength)
+            {
+                dashEndPos = totalLength;
+            }
+
+            endX = x0 + (dx * dashEndPos) / totalLength;
+            endY = y0 + (dy * dashEndPos) / totalLength;
+
+            // draw the space segment
+            _gfx->drawLine(round(startX), round(startY), round(endX), round(endY), color);
+            // Move the current position to the start of the next dash
+            currentPos += dashLength;
+        }
     }
 }
 
 float Histogram::floatMap(float x, float in_min, float in_max, float out_min, float out_max)
 {
     const float run = in_max - in_min;
-    if(run == 0){
-        //log_e("map(): Invalid input range, min == max");
+    if (run == 0)
+    {
+        // log_e("map(): Invalid input range, min == max");
         return 0.0; // AVR returns -1, SAM returns 0
     }
     const float rise = out_max - out_min;

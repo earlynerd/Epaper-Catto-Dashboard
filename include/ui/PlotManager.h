@@ -19,7 +19,7 @@ public:
                          PetDataMap &allPetData, 
                          const DateRangeInfo &range,
                          const SL_Status &status,
-                         bool wifiSuccess);
+                         float vbat);
 private:
     GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *_display;
     DataManager* _dataManager;

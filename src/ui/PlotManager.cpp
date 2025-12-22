@@ -44,9 +44,9 @@ PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(Gx
  * @param allPetData Map of all historical pet data.
  * @param range The selected date range for the dashboard (7d, 30d, etc).
  * @param status The current status of the litterbox hardware.
- * @param wifiSuccess Status of the last update attempt (not currently visualized specifically, but passed).
+ * @param vbat the measured battery voltage for display
  */
-void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, bool wifiSuccess)
+void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, float vbat)
 {
     _display->fillScreen(GxEPD_WHITE);
 
@@ -120,7 +120,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
             Histogram hist(_display, w.x, w.y, w.w, w.h);
             hist.setTitle(w.title.c_str());
             hist.setNormalization(true);
-            
+
             if (w.p1 != 0)
                 hist.setBinCount(w.p1);
             else
@@ -151,10 +151,9 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
 
             if (w.dataSource == "battery")
             {
-                int mv = analogReadMilliVolts(Config::Pins::BATTERY_ADC);
-                float v = (mv / 1000.0) * 2;
+                
                 // Simple percentage calc
-                val = (v - 3.20) / (4.20 - 3.20) * 100.0;
+                val = (vbat - 3.20) / (4.10 - 3.20) * 100.0;
                 if (val > 100)
                     val = 100;
                 if (val < 0)

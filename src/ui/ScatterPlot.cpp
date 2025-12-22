@@ -8,13 +8,10 @@
 
 // Define plot margins for labels and axes
 const int MARGIN_TOP = 20;
-const int MARGIN_BOTTOM = 20;
-const int MARGIN_LEFT = 30;
-const int MARGIN_RIGHT = 15;
+const int MARGIN_BOTTOM = 15;
+const int MARGIN_LEFT = 26;
+const int MARGIN_RIGHT = 5;
 
-// Define colors (0=black, 15=white for this library)
-const int PLOT_BLACK = 0;
-const int PLOT_WHITE = 15;
 
 // Constructor: Initializes the plot with its position and a reference to the framebuffer
 ScatterPlot::ScatterPlot(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp, int x, int y, int width, int height)
@@ -101,8 +98,7 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     int plotAreaWidth = _width - MARGIN_LEFT - MARGIN_RIGHT;
     int plotAreaHeight = _height - MARGIN_TOP - MARGIN_BOTTOM;
 
-    // Draw axis lines
-    display->drawRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight, EPD_BLACK);
+   
 
     
     // --- Draw Y-Axis Ticks and Labels ---
@@ -115,8 +111,8 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         DataPoint tickpoint = {0.0, yVal };     
         int xPos, yPos;
         mapPoint(tickpoint, xPos, yPos, xMin, xMax, yMin, yMax);
-        if (i == numYTicks) display->drawLine(plotAreaX - 5, plotAreaY + plotAreaHeight-1, plotAreaX, plotAreaY + plotAreaHeight-1, EPD_BLACK);
-        else display->drawLine(plotAreaX - 5, yPos, plotAreaX, yPos, EPD_BLACK); // Tick mark
+        //if (i == numYTicks) display->drawLine(plotAreaX - 3, plotAreaY + plotAreaHeight-1, plotAreaX, plotAreaY + plotAreaHeight-1, EPD_BLACK);
+        //else display->drawLine(plotAreaX - 3, yPos, plotAreaX, yPos, EPD_BLACK); // Tick mark
         if (i < numYTicks)
             drawDashedLine(plotAreaX, yPos, plotAreaX + plotAreaWidth, yPos, EPD_BLACK, 1, 3); // grid line
         float labelVal = yMax - (yMax - yMin) * i / numYTicks;
@@ -127,8 +123,8 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         display->setFont(NULL);
         display->setTextSize(1);
         display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-        display->setTextColor(EPD_BLACK); // Original code used blue for Y-axis labels
-        display->setCursor(plotAreaX - w - 5, yPos - h/2); // Centered text
+        display->setTextColor(EPD_BLACK); 
+        display->setCursor(plotAreaX - w - 1, yPos - h/2); // Centered text
         display->print(buffer);
     }
 
@@ -153,8 +149,8 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         mapPoint(tickpoint, xPos, yPos, xMin, xMax, yMin, yMax);
         if((xPos < plotAreaX) || (xPos > plotAreaX + plotAreaWidth)) continue;
         //int xPos = plotAreaX + (plotAreaWidth * i) / numXTicks;
-        if(i == numXTicks) display->drawLine(plotAreaX+plotAreaWidth -1 , plotAreaY + plotAreaHeight, plotAreaX+plotAreaWidth -1, plotAreaY + plotAreaHeight + 5, EPD_BLACK);
-        else display->drawLine(xPos, plotAreaY + plotAreaHeight, xPos, plotAreaY + plotAreaHeight + 5, EPD_BLACK);
+        //if(i == numXTicks) display->drawLine(plotAreaX+plotAreaWidth -1 , plotAreaY + plotAreaHeight, plotAreaX+plotAreaWidth -1, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
+        //else display->drawLine(xPos, plotAreaY + plotAreaHeight, xPos, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
         if (i < numXTicks)
             drawDashedLine(xPos, plotAreaY, xPos, plotAreaY + plotAreaHeight, EPD_BLACK, 1, 3);
         float labelVal = xMin + (xMax - xMin) * i / numXTicks;
@@ -170,8 +166,9 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         display->setTextSize(1);
         display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
         display->setTextColor(EPD_BLACK);
-        display->setCursor(xPos - w/2, plotAreaY + plotAreaHeight + 7); // Centered text
+        display->setCursor(xPos - w/2, plotAreaY + plotAreaHeight + 2); // Centered text
         display->print(buffer);
+        
     }
 
     // --- Draw Title and Axis Labels ---
@@ -181,13 +178,13 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     display->setTextSize(0);
     display->getTextBounds(_title.c_str(), x, y, &x1, &y1, &w, &h);
     display->setTextColor(EPD_BLACK);
-    display->setCursor(_x + (_width - w) / 2, _y + MARGIN_TOP - h/2); // Centered title
+    display->setCursor(_x + (_width - w) / 2, _y + MARGIN_TOP - h/2 + 2); // Centered title
     display->print(_title);
     
     display->setTextColor(EPD_BLACK);
     display->setFont(NULL);
-    // Y-Axis label (rotated text is hard, skipping for brevity, was missing in original)
-    // X-Axis label (was missing in original)
+     // Draw axis lines
+    display->drawRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight, EPD_BLACK);
 }
 
 void ScatterPlot::mapPoint(const DataPoint &p, int &screenX, int &screenY, float xMin, float xMax, float yMin, float yMax)
@@ -309,6 +306,17 @@ void ScatterPlot::add_refresh_timestamp()
 
 void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color, uint16_t dashLength, uint16_t spaceLength)
 {
+
+    if (y0 > y1)
+    {
+        y0 -= 1;
+        y0 += 1;
+    }
+    else if (y1 > y0)
+    {
+        y0 += 1;
+        y1 -= 1;
+    }
     // Ensure dash and space lengths are positive to avoid infinite loops
     if (dashLength == 0 || spaceLength == 0)
     {
@@ -334,23 +342,41 @@ void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
         float startY = y0 + (dy * currentPos) / totalLength;
 
         // Determine the end position of the dash
-        float dashEndPos = currentPos + dashLength;
+        float spaceEndPos = currentPos + spaceLength;
 
-        // If the dash goes past the end of the line, clamp it
-        if (dashEndPos > totalLength)
+        if (spaceEndPos > totalLength)
         {
-            dashEndPos = totalLength;
+            spaceEndPos = totalLength;
         }
+        // If the dash goes past the end of the line, clamp it
 
         // Calculate the ending point of the current dash
-        float endX = x0 + (dx * dashEndPos) / totalLength;
-        float endY = y0 + (dy * dashEndPos) / totalLength;
+        float endX = x0 + (dx * spaceEndPos) / totalLength;
+        float endY = y0 + (dy * spaceEndPos) / totalLength;
 
         // Draw the dash segment
-        display->drawLine(round(startX), round(startY), round(endX), round(endY), color);
+        display->drawLine(round(startX), round(startY), round(endX), round(endY), EPD_WHITE);
+        currentPos += spaceLength;
+        if (currentPos < totalLength)
+        {
+            startX = endX;
+            startY = endY;
 
-        // Move the current position to the start of the next dash
-        currentPos += cycleLength;
+            float dashEndPos = currentPos + dashLength;
+
+            if (dashEndPos > totalLength)
+            {
+                dashEndPos = totalLength;
+            }
+
+            endX = x0 + (dx * dashEndPos) / totalLength;
+            endY = y0 + (dy * dashEndPos) / totalLength;
+
+            // draw the space segment
+            display->drawLine(round(startX), round(startY), round(endX), round(endY), color);
+            // Move the current position to the start of the next dash
+            currentPos += dashLength;
+        }
     }
 }
 

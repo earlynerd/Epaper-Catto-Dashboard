@@ -109,9 +109,9 @@ private:
 
     // Constants for layout and styling
     const int PADDING_TOP = 20;
-    const int PADDING_BOTTOM = 15;
-    const int PADDING_LEFT = 29;
-    const int PADDING_RIGHT = 15; 
+    const int PADDING_BOTTOM = 12;
+    const int PADDING_LEFT = 26;
+    const int PADDING_RIGHT = 5; 
     const uint16_t AXIS_COLOR = GxEPD_BLACK;
     const uint16_t TEXT_COLOR = GxEPD_BLACK;
 };

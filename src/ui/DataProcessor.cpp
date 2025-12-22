@@ -61,7 +61,7 @@ DashboardData DataProcessor::process(const std::vector<SL_Pet> &pets,
 
             lastTimestamp = record.timestamp;
         }
-        series.deltaWeightValues = getWeightChangeRates(series.scatterPoints, 30, 5);
+        series.deltaWeightValues = getWeightChangeRates(series.scatterPoints, 30, 7);
         data.series.push_back(series);
         idx++;
     }

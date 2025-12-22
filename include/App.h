@@ -22,7 +22,7 @@ private:
     void checkFactoryReset();
     void initStorage();
     void updateData(bool isViewUpdate);
-    void renderView(int rangeIndex, const SL_Status& status, bool wifiSuccess);
+    void renderView(int rangeIndex, const SL_Status& status, float vbat);
     void enterSleep();
 
     GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display;
