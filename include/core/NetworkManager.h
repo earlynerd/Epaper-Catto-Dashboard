@@ -17,7 +17,8 @@
 #if (EPD_SELECT == 1002)
 #include <GxEPD2_7C.h>
 #elif (EPD_SELECT == 1001)
-#include <GxEPD2_BW.h>
+#include <GxEPD2_4G_BW.h>
+#include "GxEPD2_4G_4G.h"
 #endif
 class NetworkManager {
 public:

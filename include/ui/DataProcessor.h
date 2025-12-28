@@ -1,12 +1,12 @@
 #ifndef DATA_PROCESSOR_H
 #define DATA_PROCESSOR_H
-
+#include "core/Config.h"
 #include <vector>
 #include <map>
 #include "core/SharedTypes.h"
 #include "ui/PlotDataTypes.h"
 #include "ui/PlotManager.h" // For ColorPair access or we can move ColorPair
-#include "core/Config.h"
+
 
 class DataProcessor {
 public:

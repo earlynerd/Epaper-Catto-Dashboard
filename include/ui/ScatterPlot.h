@@ -6,11 +6,6 @@
 #include <Arduino.h>
 #include <vector>
 #include "core/Config.h"
-#if (EPD_SELECT == 1002)
-#include <GxEPD2_7C.h>
-#elif (EPD_SELECT == 1001)
-#include <GxEPD2_BW.h>
-#endif
 #include <Fonts/FreeMonoBold9pt7b.h>
 #define PIXELS_PER_TICK     24
 
@@ -33,7 +28,7 @@ struct PlotSeries {
 class ScatterPlot {
 public:
     // Constructor
-    ScatterPlot(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)>* disp, int x, int y, int width, int height);
+    ScatterPlot(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)>* disp, int x, int y, int width, int height, uint16_t color);
 
     /**
      * @brief Add a data series to be plotted.
@@ -50,7 +45,7 @@ public:
     void draw();
     
     // Helper to draw text easily
-    void drawString(int x, int y, const String& text, const GFXfont* font, uint8_t color);
+    void drawString(int x, int y, const String& text, const GFXfont* font, uint16_t color);
 
 private:
     // Framebuffer and plot dimensions
@@ -60,7 +55,7 @@ private:
     // Plot data and labels
     std::vector<PlotSeries> _series; // Use a vector of series
     String _title, _xLabel, _yLabel;
-
+    uint16_t _color;
     // Helper functions for drawing
     void drawAxes(float xMin, float xMax, float yMin, float yMax);
     void plotDataPoints(float xMin, float xMax, float yMin, float yMax);
@@ -73,6 +68,7 @@ private:
     //add the present time to show when display last refreshed
     void add_refresh_timestamp();
     float floatMap(float x, float in_min, float in_max, float out_min, float out_max);
+    void drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2);
     
 };
 

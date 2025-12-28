@@ -5,8 +5,8 @@
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 
-Histogram::Histogram(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h)
-    : _gfx(gfx), _x(x), _y(y), _w(w), _h(h) {}
+Histogram::Histogram(Adafruit_GFX *gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+    : _gfx(gfx), _x(x), _y(y), _w(w), _h(h), _color(color) {}
 
 void Histogram::setTitle(const char *title) { _title = title; }
 void Histogram::setXAxisLabel(const char *label) { _xAxisLabel = label; }
@@ -33,6 +33,30 @@ void Histogram::setNormalization(bool enabled)
 
 void Histogram::plot()
 {
+
+#if (EPD_SELECT == 1001) // do some translating of color settings
+    if (_color == EPD_RED)
+        _color = EPD_LIGHTGREY;
+    else if (_color == EPD_BLUE)
+        _color = EPD_DARKGREY;
+    else if (_color == EPD_YELLOW)
+        _color = EPD_LIGHTGREY;
+    else if (_color == EPD_GREEN)
+        _color = EPD_DARKGREY;
+    else if ((_color != EPD_BLACK) && (_color != EPD_LIGHTGREY) && (_color != EPD_DARKGREY))
+        _color = EPD_WHITE;
+#else
+    if (_color == EPD_LIGHTGREY)
+        _color = EPD_BLUE;
+    else if (_color == EPD_DARKGREY)
+        _color = EPD_RED;
+#endif
+    _gfx->fillRect(_x, _y, _w, _h, EPD_WHITE);
+    _gfx->fillRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_WHITE);
+    _gfx->fillRect(_x + PADDING_LEFT, _y, _w - PADDING_LEFT - PADDING_RIGHT, PADDING_TOP, _color);
+    _gfx->drawRect(_x + PADDING_LEFT, _y, _w - PADDING_LEFT - PADDING_RIGHT, PADDING_TOP + 1, EPD_BLACK);
+    // drawCheckerRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_WHITE, EPD_DARKGREY);
+
     if (_series.empty())
     {
 
@@ -41,6 +65,7 @@ void Histogram::plot()
         _gfx->setTextSize(0);
         _gfx->setCursor(_x + PADDING_LEFT + 10, _y + PADDING_TOP + 10);
         _gfx->print("No data to plot.");
+        _gfx->fillRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_WHITE);
         _gfx->drawRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_BLACK);
         return;
     }
@@ -53,6 +78,7 @@ void Histogram::plot()
 
     // Draw the chart framework
     drawAxes();
+    _gfx->drawRect(_x + PADDING_LEFT, _y + PADDING_TOP, _w - PADDING_LEFT - PADDING_RIGHT, _h - PADDING_TOP - PADDING_BOTTOM, EPD_BLACK);
 }
 
 void Histogram::processData()
@@ -156,7 +182,8 @@ void Histogram::drawAxes()
     _plotH = _h - PADDING_TOP - PADDING_BOTTOM;
     float barSlotWidth = (float)_plotW / (float)_numBins;
     // Draw axes lines
-    _gfx->drawRect(_plotX, _plotY, _plotW, _plotH, AXIS_COLOR);
+
+    //_gfx->drawRect(_plotX, _plotY, _plotW, _plotH, AXIS_COLOR);
 
     // Draw Title
     if (_title)
@@ -167,7 +194,7 @@ void Histogram::drawAxes()
         _gfx->setTextSize(0);
         _gfx->getTextBounds(_title, 0, 0, &tx, &ty, &tw, &th);
         _gfx->setCursor(_x + (_w - tw) / 2, _plotY - th / 2 + 2); // Adjusted y
-        _gfx->setTextColor(TEXT_COLOR);
+        _gfx->setTextColor(EPD_WHITE);
         _gfx->print(_title);
         _gfx->setTextSize(1);
         _gfx->setFont(NULL);
@@ -179,9 +206,9 @@ void Histogram::drawAxes()
     {
         int16_t yPos = _plotY + _plotH - (i * _plotH / numYTicks);
         if (i == 0)
-            _gfx->drawLine(_plotX - 3, _plotY + _plotH - 1, _plotX, _plotY + _plotH - 1, AXIS_COLOR);
+            _gfx->drawLine(_plotX - 3, _plotY + _plotH - 1, _plotX, _plotY + _plotH - 1, EPD_BLACK);
         else
-            _gfx->drawLine(_plotX - 3, yPos, _plotX, yPos, AXIS_COLOR);
+            _gfx->drawLine(_plotX - 3, yPos, _plotX, yPos, EPD_BLACK);
 
         int labelVal;
         char label[10];
@@ -201,14 +228,14 @@ void Histogram::drawAxes()
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
         _gfx->setCursor(_plotX - tw - 6, yPos - th / 2); // Adjusted y
-        _gfx->setTextColor(TEXT_COLOR);                  // Use standard text color
+        _gfx->setTextColor(EPD_BLACK);                   // Use standard text color
         _gfx->print(label);
     }
     // if (_yAxisLabel) {
     //_gfx->setCursor(_x + 5, _y + PADDING_TOP + _plotH/2);
     //_gfx->print(_yAxisLabel);
     //}
-    _gfx->setTextColor(GxEPD_BLACK);
+    _gfx->setTextColor(EPD_BLACK);
 
     // Draw X-axis labels and ticks
     int numXTicks = 8;
@@ -228,7 +255,7 @@ void Histogram::drawAxes()
         // if (i == numXTicks)
         //     _gfx->drawLine(_plotX + _plotW - 1, _plotY + _plotH, _plotX + _plotW - 1, _plotY + _plotH + 5, AXIS_COLOR);
         // else
-        _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 2, AXIS_COLOR);
+        _gfx->drawLine(xPos, _plotY + _plotH, xPos, _plotY + _plotH + 2, EPD_BLACK);
 
         char label[32];
         dtostrf(labelVal, 4, 1, label);
@@ -237,7 +264,7 @@ void Histogram::drawAxes()
         int16_t tx, ty;
         uint16_t tw, th;
         _gfx->getTextBounds(label, 0, 0, &tx, &ty, &tw, &th);
-        _gfx->setCursor(xPos - tw / 2, _plotY + _plotH + 5); 
+        _gfx->setCursor(xPos - tw / 2, _plotY + _plotH + 5);
         _gfx->print(label);
     }
     if ((_minVal < 0.0) && (_maxVal > 0.0)) // if zero is in the range, draw a dashed vertical line at zero
@@ -325,15 +352,25 @@ void Histogram::drawBars()
                     _gfx->fillRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK);
                     break;
                 case EPD_BLUE:
-                    drawCheckerRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+                    // drawCheckerRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+
+                    _gfx->fillRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_LIGHTGREY);
+                    _gfx->drawRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK);
                     break;
                 case EPD_GREEN:
-                    drawPatternRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+                    // drawPatternRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+
+                    _gfx->fillRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_DARKGREY);
+                    _gfx->drawRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK);
                     break;
                 case EPD_YELLOW:
-                    drawHatchRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+                    // drawHatchRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
+                    drawPatternRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK, EPD_WHITE);
                     break;
                 case EPD_BLACK:
+                    //_gfx->drawRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK);
+
+                    _gfx->fillRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_WHITE);
                     _gfx->drawRect(barStartX, _plotY + _plotH - barH, barWidth, barH, EPD_BLACK);
                     break;
                 }

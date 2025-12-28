@@ -8,7 +8,9 @@
 #include "core/NetworkManager.h"
 #include "ui/PlotManager.h"
 #include "RTClib.h"
+#include "Adafruit_GFX.h"
 #include "Adafruit_SHT4x.h"
+
 
 class App {
 public:
@@ -24,8 +26,8 @@ private:
     void updateData(bool isViewUpdate);
     void renderView(int rangeIndex, const SL_Status& status, float vbat);
     void enterSleep();
-
-    GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *display;
+    //GxEPD2_GFX* display;
+    GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> display;
     RTC_PCF8563 rtc;
     Adafruit_SHT4x sht4;
     SPIClass hspi;

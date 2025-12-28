@@ -1,11 +1,6 @@
 #ifndef EPAPER_HISTOGRAM_H
 #define EPAPER_HISTOGRAM_H
 #include "core/Config.h"
-#if (EPD_SELECT == 1002)
-#include <GxEPD2_7C.h>
-#elif (EPD_SELECT == 1001)
-#include <GxEPD2_BW.h>
-#endif
 #include <vector>
 
 
@@ -28,7 +23,7 @@ public:
      * @param w The width of the chart area.
      * @param h The height of the chart area.
      */
-    Histogram(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t w, int16_t h);
+    Histogram(Adafruit_GFX* gfx, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 
     /**
      * @brief Set the main title of the histogram.
@@ -90,7 +85,7 @@ private:
     float floatMap(float x, float in_min, float in_max, float out_min, float out_max);
     Adafruit_GFX* _gfx;
     int16_t _x, _y, _w, _h; // Overall widget position and size
-
+    uint16_t _color;
     // Plotting area (inside the widget area, with padding for labels/title)
     int16_t _plotX, _plotY, _plotW, _plotH;
 

@@ -232,7 +232,7 @@ void RingGauge::draw(float value)
     int16_t arcRadius = _radius;
     
     // 2. Draw Active Arc
-    fillArc(arcCenter_x, arcCenter_y, _startAngle, _endAngle, arcRadius, arcRadius - _thickness, _cFg);                      // border
+    fillArc(arcCenter_x, arcCenter_y, _startAngle, _endAngle, arcRadius, arcRadius - _thickness, EPD_BLACK);                      // border
     fillArc(arcCenter_x, arcCenter_y, _startAngle + 3, _endAngle - 3, arcRadius - 1, arcRadius - _thickness + 1, _cBg);      // empty fill
     fillArc(arcCenter_x, arcCenter_y, _startAngle + 3, activeEndAngle - 3, arcRadius - 1, arcRadius - _thickness + 1, _cFg); // active bar
     const GFXfont *fonts[] = {&FreeSansBold24pt7b, &FreeSansBold18pt7b, &FreeSansBold12pt7b, &FreeSansBold9pt7b};
@@ -242,7 +242,7 @@ void RingGauge::draw(float value)
     String valStr = String((int)value) + _units;
     // 3. Draw Value in Center
     _gfx->setFont(&FreeSansBold9pt7b);
-    _gfx->setTextColor(_cFg);
+    _gfx->setTextColor(EPD_BLACK);
     _gfx->setTextSize(0);
     uint16_t centerspace = (_radius - _thickness) * 2;
     while (((w > centerspace) || (h > centerspace)) && textIndex < 4)
@@ -256,7 +256,7 @@ void RingGauge::draw(float value)
     _gfx->print(valStr);
 
     _gfx->setFont(&FreeSansBold9pt7b);
-    _gfx->setTextColor(_cFg);
+    _gfx->setTextColor(EPD_BLACK);
     _gfx->setTextSize(0);
     if (_showLabel)
     {

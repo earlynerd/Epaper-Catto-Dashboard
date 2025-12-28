@@ -12,13 +12,12 @@ const int MARGIN_BOTTOM = 15;
 const int MARGIN_LEFT = 26;
 const int MARGIN_RIGHT = 5;
 
+// Constructor: Initializes the plot with its position and a reference to the display
+ScatterPlot::ScatterPlot(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp, int x, int y, int width, int height, uint16_t color)
+    : display(disp), _x(x), _y(y), _width(width), _height(height), _color(color) {}
 
-// Constructor: Initializes the plot with its position and a reference to the framebuffer
-ScatterPlot::ScatterPlot(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> *disp, int x, int y, int width, int height)
-    : display(disp), _x(x), _y(y), _width(width), _height(height) {}
-
-
-void ScatterPlot::addSeries(const String& name, const std::vector<DataPoint>& data, uint16_t color, uint16_t bgcolor, int xticks, int yticks) {
+void ScatterPlot::addSeries(const String &name, const std::vector<DataPoint> &data, uint16_t color, uint16_t bgcolor, int xticks, int yticks)
+{
     _series.push_back({name, data, color, bgcolor});
     _xticks = xticks;
     _yticks = yticks;
@@ -33,6 +32,23 @@ void ScatterPlot::setLabels(const String &title, const String &xLabel, const Str
 
 void ScatterPlot::draw()
 {
+#if (EPD_SELECT == 1001) // do some translating of color settings
+    if (_color == EPD_RED)
+        _color = EPD_LIGHTGREY;
+    else if (_color == EPD_BLUE)
+        _color = EPD_DARKGREY;
+    else if (_color == EPD_YELLOW)
+        _color = EPD_LIGHTGREY;
+    else if (_color == EPD_GREEN)
+        _color = EPD_DARKGREY;
+    else if ((_color != EPD_BLACK) && (_color != EPD_LIGHTGREY) && (_color != EPD_DARKGREY))
+        _color = EPD_WHITE;
+#else
+    if (_color == EPD_LIGHTGREY)
+        _color = EPD_BLUE;
+    else if (_color == EPD_DARKGREY)
+        _color = EPD_RED;
+#endif
     // 1. Find min and max values for auto-scaling
     display->setTextSize(1);
     display->setFont(NULL);
@@ -50,19 +66,24 @@ void ScatterPlot::draw()
     {
         for (const auto &p : data)
         {
-            if (p.x < xMin) xMin = p.x;
-            if (p.x > xMax) xMax = p.x;
-            if (p.y < yMin) yMin = p.y;
-            if (p.y > yMax) yMax = p.y;
+            if (p.x < xMin)
+                xMin = p.x;
+            if (p.x > xMax)
+                xMax = p.x;
+            if (p.y < yMin)
+                yMin = p.y;
+            if (p.y > yMax)
+                yMax = p.y;
         }
     };
-    
+
     // Iterate over all series to find global min/max
-    for (const auto& s : _series) {
+    for (const auto &s : _series)
+    {
         findMinMax(s.data);
     }
-    //yMin = 0;
-    // Add a 5% padding to the ranges
+    // yMin = 0;
+    //  Add a 5% padding to the ranges
     float xRange = xMax - xMin;
     float yRange = yMax - yMin;
     xMin -= xRange * 0.05;
@@ -70,25 +91,32 @@ void ScatterPlot::draw()
     yMin -= yRange * 0.15;
     yMax += yRange * 0.15;
 
-    if(_series.size() < 2)
+    if (_series.size() < 2)
     {
-     yMin = yMin* 0.9;
-     yMax = yMax * 1.1;
+        yMin = yMin * 0.9;
+        yMax = yMax * 1.1;
     }
 
-    if (xMax == xMin) { xMax += 1.0; xMin -= 1.0; }
-    if (yMax == yMin) { yMax += 1.0; yMin -= 1.0; }
-    //yMin = 0;
-    
+    if (xMax == xMin)
+    {
+        xMax += 1.0;
+        xMin -= 1.0;
+    }
+    if (yMax == yMin)
+    {
+        yMax += 1.0;
+        yMin -= 1.0;
+    }
+    // yMin = 0;
 
     // 2. Clear the plot area (fill with white)
-    display->fillRect(_x, _y, _width, _height, GxEPD_WHITE);
-    
+    // display->fillRect(_x, _y, _width, _height, GxEPD_WHITE);
+
     // 3. Draw components
     drawAxes(xMin, xMax, yMin, yMax);
     plotDataPoints(xMin, xMax, yMin, yMax);
     drawLegend();
-    //add_refresh_timestamp();
+    // add_refresh_timestamp();
 }
 
 void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
@@ -98,23 +126,33 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     int plotAreaWidth = _width - MARGIN_LEFT - MARGIN_RIGHT;
     int plotAreaHeight = _height - MARGIN_TOP - MARGIN_BOTTOM;
 
-   
+    // drawCheckerRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight,EPD_WHITE, EPD_DARKGREY);
+    display->fillRect(_x, _y, _width, _height, EPD_WHITE);
+    display->fillRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight, EPD_WHITE);
+    display->fillRect(plotAreaX, _y, plotAreaWidth, MARGIN_TOP, _color);
+    display->drawRect(plotAreaX, _y, plotAreaWidth, MARGIN_TOP + 1, EPD_BLACK);
+    display->drawRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight, EPD_BLACK);
 
-    
     // --- Draw Y-Axis Ticks and Labels ---
     const int numYTicks = _yticks;
     for (int i = 0; i <= numYTicks; ++i)
     {
-        
-        //int yPos = plotAreaY + (plotAreaHeight * i) / numYTicks;
-        float yVal = floatMap((float)i, 0.0, (float)numYTicks, yMax, yMin);   
-        DataPoint tickpoint = {0.0, yVal };     
+
+        // int yPos = plotAreaY + (plotAreaHeight * i) / numYTicks;
+        float yVal = floatMap((float)i, 0.0, (float)numYTicks, yMax, yMin);
+        DataPoint tickpoint = {0.0, yVal};
         int xPos, yPos;
         mapPoint(tickpoint, xPos, yPos, xMin, xMax, yMin, yMax);
-        //if (i == numYTicks) display->drawLine(plotAreaX - 3, plotAreaY + plotAreaHeight-1, plotAreaX, plotAreaY + plotAreaHeight-1, EPD_BLACK);
-        //else display->drawLine(plotAreaX - 3, yPos, plotAreaX, yPos, EPD_BLACK); // Tick mark
+        // if (i == numYTicks) display->drawLine(plotAreaX - 3, plotAreaY + plotAreaHeight-1, plotAreaX, plotAreaY + plotAreaHeight-1, EPD_BLACK);
+        // else display->drawLine(plotAreaX - 3, yPos, plotAreaX, yPos, EPD_BLACK); // Tick mark
         if (i < numYTicks)
-            drawDashedLine(plotAreaX, yPos, plotAreaX + plotAreaWidth, yPos, EPD_BLACK, 1, 3); // grid line
+        {
+#if (EPD_SELECT == 1001)
+            display->drawLine(plotAreaX, yPos, plotAreaX + plotAreaWidth, yPos, _color);
+#else
+            drawDashedLine(plotAreaX, yPos, plotAreaX + plotAreaWidth, yPos, _color, 2, 4); // grid line
+#endif
+        }
         float labelVal = yMax - (yMax - yMin) * i / numYTicks;
         char buffer[10];
         dtostrf(labelVal, 4, 1, buffer);
@@ -123,8 +161,8 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         display->setFont(NULL);
         display->setTextSize(1);
         display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
-        display->setTextColor(EPD_BLACK); 
-        display->setCursor(plotAreaX - w - 1, yPos - h/2); // Centered text
+        display->setTextColor(EPD_BLACK);
+        display->setCursor(plotAreaX - w - 1, yPos - h / 2); // Centered text
         display->print(buffer);
     }
 
@@ -137,27 +175,34 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     midnight_tomorrow->tm_sec = 0;
     time_t midnight = mktime(midnight_tomorrow) + (60.0 * 60.0 * 24.0);
     float days_in_xrange = (xMax - xMin) / (60.0 * 60.0 * 24.0);
-    float days_per_xtick = ceil( days_in_xrange / numXTicks);
+    float days_per_xtick = ceil(days_in_xrange / numXTicks);
     float seconds_per_xtick = days_per_xtick * (60.0 * 60.0 * 24.0);
-    for (int i = numXTicks; i >=0; --i)
+    for (int i = numXTicks; i >= 0; --i)
     {
         time_t tickTime = midnight - (time_t)((float)i * seconds_per_xtick);
-        struct tm* thisticktime = localtime(&tickTime);
+        struct tm *thisticktime = localtime(&tickTime);
         time_t adjustedticktime = mktime(thisticktime);
-        DataPoint tickpoint = {(float)adjustedticktime, 0.0 };
+        DataPoint tickpoint = {(float)adjustedticktime, 0.0};
         int xPos, yPos;
         mapPoint(tickpoint, xPos, yPos, xMin, xMax, yMin, yMax);
-        if((xPos < plotAreaX) || (xPos > plotAreaX + plotAreaWidth)) continue;
-        //int xPos = plotAreaX + (plotAreaWidth * i) / numXTicks;
-        //if(i == numXTicks) display->drawLine(plotAreaX+plotAreaWidth -1 , plotAreaY + plotAreaHeight, plotAreaX+plotAreaWidth -1, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
-        //else display->drawLine(xPos, plotAreaY + plotAreaHeight, xPos, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
+        if ((xPos < plotAreaX) || (xPos > plotAreaX + plotAreaWidth))
+            continue;
+        // int xPos = plotAreaX + (plotAreaWidth * i) / numXTicks;
+        // if(i == numXTicks) display->drawLine(plotAreaX+plotAreaWidth -1 , plotAreaY + plotAreaHeight, plotAreaX+plotAreaWidth -1, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
+        // else display->drawLine(xPos, plotAreaY + plotAreaHeight, xPos, plotAreaY + plotAreaHeight + 3, EPD_BLACK);
         if (i < numXTicks)
-            drawDashedLine(xPos, plotAreaY, xPos, plotAreaY + plotAreaHeight, EPD_BLACK, 1, 3);
+        {
+#if (EPD_SELECT == 1001)
+            display->drawLine(xPos, plotAreaY, xPos, plotAreaY + plotAreaHeight, _color);
+#else
+            drawDashedLine(xPos, plotAreaY, xPos, plotAreaY + plotAreaHeight, _color, 2, 4);
+#endif
+        }
         float labelVal = xMin + (xMax - xMin) * i / numXTicks;
 
         // Convert timestamp to Month/Day format
         char buffer[10];
-        //time_t tick_time = (time_t)labelVal;
+        // time_t tick_time = (time_t)labelVal;
         struct tm *tm_info = localtime(&tickTime);
         strftime(buffer, sizeof(buffer), "%m/%d", tm_info);
         int16_t x = plotAreaX, y = plotAreaY, x1 = 0, y1 = 0;
@@ -166,9 +211,8 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
         display->setTextSize(1);
         display->getTextBounds(buffer, x, y, &x1, &y1, &w, &h);
         display->setTextColor(EPD_BLACK);
-        display->setCursor(xPos - w/2, plotAreaY + plotAreaHeight + 2); // Centered text
+        display->setCursor(xPos - w / 2, plotAreaY + plotAreaHeight + 2); // Centered text
         display->print(buffer);
-        
     }
 
     // --- Draw Title and Axis Labels ---
@@ -177,30 +221,31 @@ void ScatterPlot::drawAxes(float xMin, float xMax, float yMin, float yMax)
     display->setFont(&FreeSansBold9pt7b);
     display->setTextSize(0);
     display->getTextBounds(_title.c_str(), x, y, &x1, &y1, &w, &h);
-    display->setTextColor(EPD_BLACK);
-    display->setCursor(_x + (_width - w) / 2, _y + MARGIN_TOP - h/2 + 2); // Centered title
+    display->setTextColor(EPD_WHITE);
+    display->setCursor(_x + (_width - w) / 2, _y + MARGIN_TOP - h / 2 + 2); // Centered title
     display->print(_title);
-    
+
     display->setTextColor(EPD_BLACK);
     display->setFont(NULL);
-     // Draw axis lines
+    // Draw axis lines
     display->drawRect(plotAreaX, plotAreaY, plotAreaWidth, plotAreaHeight, EPD_BLACK);
 }
 
 void ScatterPlot::mapPoint(const DataPoint &p, int &screenX, int &screenY, float xMin, float xMax, float yMin, float yMax)
 {
-        int plotAreaX = _x + MARGIN_LEFT;
-        int plotAreaY = _y + MARGIN_TOP;
-        int plotAreaWidth = _width - MARGIN_LEFT - MARGIN_RIGHT;
-        int plotAreaHeight = _height - MARGIN_TOP - MARGIN_BOTTOM;
-        screenX = plotAreaX + ((p.x - xMin) / (xMax - xMin)) * plotAreaWidth;
-        screenY = (plotAreaY + plotAreaHeight) - ((p.y - yMin) / (yMax - yMin)) * plotAreaHeight;
+    int plotAreaX = _x + MARGIN_LEFT;
+    int plotAreaY = _y + MARGIN_TOP;
+    int plotAreaWidth = _width - MARGIN_LEFT - MARGIN_RIGHT;
+    int plotAreaHeight = _height - MARGIN_TOP - MARGIN_BOTTOM;
+    screenX = plotAreaX + ((p.x - xMin) / (xMax - xMin)) * plotAreaWidth;
+    screenY = (plotAreaY + plotAreaHeight) - ((p.y - yMin) / (yMax - yMin)) * plotAreaHeight;
 }
 
 void ScatterPlot::plotDataPoints(float xMin, float xMax, float yMin, float yMax)
 {
     // Loop over all series and plot their points
-    for (const auto& s : _series) {
+    for (const auto &s : _series)
+    {
         for (const auto &p : s.data)
         {
             int sx, sy;
@@ -210,7 +255,8 @@ void ScatterPlot::plotDataPoints(float xMin, float xMax, float yMin, float yMax)
     }
 }
 
-void ScatterPlot::drawLegend() {
+void ScatterPlot::drawLegend()
+{
     int markerw = 15, markerh = 10;
     int16_t legendX = _x + MARGIN_LEFT + 5;
     int16_t legendY = _y + MARGIN_TOP + markerh; // Top-left legend
@@ -218,21 +264,23 @@ void ScatterPlot::drawLegend() {
 
     display->setFont(&FreeSans9pt7b);
     display->setTextSize(0);
-    int16_t  x1 = 0, y1 = 0;
+    int16_t x1 = 0, y1 = 0;
     uint16_t w = 0, h = 0;
     int16_t widthsum = 0;
-    for (const auto& s : _series) {
+    for (const auto &s : _series)
+    {
         display->getTextBounds(s.name, legendX, legendY, &x1, &y1, &w, &h);
         widthsum += w;
     }
-    //display->getTextBounds(_series.front().name, legendX, legendY, &x1, &y1, &w, &h);
-    display->fillRect(legendX, legendY, widthsum + _series.size() *(markerw +  spacing+3), h+16, EPD_WHITE);
-    display->drawRect(legendX, legendY, widthsum + _series.size() *(markerw +  spacing+3), h+16, EPD_BLACK);
-    for (const auto& s : _series) {
+    // display->getTextBounds(_series.front().name, legendX, legendY, &x1, &y1, &w, &h);
+    display->fillRect(legendX, legendY, widthsum + _series.size() * (markerw + spacing + 3), h + 16, EPD_WHITE);
+    display->drawRect(legendX, legendY, widthsum + _series.size() * (markerw + spacing + 3), h + 16, EPD_BLACK);
+    for (const auto &s : _series)
+    {
         display->getTextBounds(s.name, legendX, legendY, &x1, &y1, &w, &h);
-        drawMarker(legendX + markerw/2, legendY + markerh+5, s.color, s.background);
-        //display->fillRect(legendX, legendY, markerw, markerh, s.color);
-        display->setCursor(legendX + markerw,  legendY + markerh*2);
+        drawMarker(legendX + markerw / 2, legendY + markerh + 5, s.color, s.background);
+        // display->fillRect(legendX, legendY, markerw, markerh, s.color);
+        display->setCursor(legendX + markerw, legendY + markerh * 2);
         display->print(s.name);
 
         // Move X for next legend item
@@ -242,38 +290,39 @@ void ScatterPlot::drawLegend() {
 
 void ScatterPlot::drawMarker(int x, int y, uint16_t color, uint16_t background)
 {
-    #if (EPD_SELECT == 1002)
-        // You could customize this to draw different markers based on series index
-        // For now, all series use a filled circle
-        display->fillCircle(x, y, 3, background);
-        display->drawCircle(x, y, 3, color);
-        display->drawCircle(x, y, 1, color);
-        
-    #elif (EPD_SELECT == 1001)
-        switch(color)
-        {
-            case EPD_RED:
-                display->fillCircle(x, y, 3, EPD_BLACK);
-            break;
-            case EPD_BLUE:
-                display->drawCircle(x, y, 3, EPD_BLACK);
-            break;
-            case EPD_GREEN:
-                display->drawRect(x-1, y+1, 4, 4, EPD_BLACK);
-            break;
-            case EPD_YELLOW:
-                display->fillRect(x-1, y+1, 4, 4, EPD_BLACK);
-            break;
-            case EPD_BLACK:
-                display->drawLine(x-2, y+2, x+2, y-2, EPD_BLACK);
-                display->drawLine(x+1, y-1, x-1, y+1, EPD_BLACK);
-            break;
-        }
-    #endif
+#if (EPD_SELECT == 1002)
+    // You could customize this to draw different markers based on series index
+    // For now, all series use a filled circle
+    display->fillCircle(x, y, 3, background);
+    display->drawCircle(x, y, 3, color);
+    display->drawCircle(x, y, 1, color);
+
+#elif (EPD_SELECT == 1001)
+    switch (color)
+    {
+    case EPD_RED:
+        display->fillCircle(x, y, 3, EPD_BLACK);
+        break;
+    case EPD_BLUE:
+        display->fillCircle(x, y, 3, EPD_LIGHTGREY);
+        display->drawCircle(x, y, 3, EPD_BLACK);
+        break;
+    case EPD_GREEN:
+        display->drawRect(x - 1, y + 1, 4, 4, EPD_BLACK);
+        break;
+    case EPD_YELLOW:
+        display->fillRect(x - 1, y + 1, 4, 4, EPD_BLACK);
+        break;
+    case EPD_BLACK:
+        display->drawLine(x - 2, y + 2, x + 2, y - 2, EPD_BLACK);
+        display->drawLine(x + 1, y - 1, x - 1, y + 1, EPD_BLACK);
+        break;
+    }
+#endif
 }
 
 // Helper function to simplify drawing text
-void ScatterPlot::drawString(int x, int y, const String &text, const GFXfont *font, uint8_t color)
+void ScatterPlot::drawString(int x, int y, const String &text, const GFXfont *font, uint16_t color)
 {
     display->setFont(font); // Use the provided font
     display->setTextSize(1);
@@ -298,10 +347,8 @@ void ScatterPlot::add_refresh_timestamp()
     display->setTextSize(1);
     display->getTextBounds(strftime_buf, x, y, &x1, &y1, &w, &h);
     x = Config::EPD_WIDTH_PX - MARGIN_RIGHT - w;
-    
-    drawString(x, h/2, strftime_buf, NULL, EPD_BLACK); // Use NULL font for default
 
-    
+    drawString(x, h / 2, strftime_buf, NULL, EPD_BLACK); // Use NULL font for default
 }
 
 void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color, uint16_t dashLength, uint16_t spaceLength)
@@ -318,7 +365,7 @@ void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
         y1 -= 1;
     }
     // Ensure dash and space lengths are positive to avoid infinite loops
-    if (dashLength == 0 || spaceLength == 0)
+    if (dashLength <= 0 || spaceLength <= 0)
     {
         display->drawLine(x0, y0, x1, y1, color);
         return;
@@ -383,11 +430,29 @@ void ScatterPlot::drawDashedLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
 float ScatterPlot::floatMap(float x, float in_min, float in_max, float out_min, float out_max)
 {
     const float run = in_max - in_min;
-    if(run == 0){
-        //log_e("map(): Invalid input range, min == max");
+    if (run == 0)
+    {
+        // log_e("map(): Invalid input range, min == max");
         return 0.0; // AVR returns -1, SAM returns 0
     }
     const float rise = out_max - out_min;
     const float delta = x - in_min;
     return (delta * rise) / run + out_min;
+}
+
+void ScatterPlot::drawCheckerRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1, uint16_t color2)
+{
+    bool checker = false;
+    for (int y1 = y; y1 < y + h; y1++)
+    {
+        for (int x1 = x; x1 < x + w; x1++)
+        {
+            if (checker ^ ((x1 - x) % 2))
+                display->drawPixel(x1, y1, color1);
+            else
+                display->drawPixel(x1, y1, color2);
+        }
+        checker = !checker;
+    }
+    display->drawRect(x, y, w, h, color1);
 }

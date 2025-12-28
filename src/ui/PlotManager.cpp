@@ -48,7 +48,7 @@ PlotManager::PlotManager(GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(Gx
  */
 void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &allPetData, const DateRangeInfo &range, const SL_Status &status, float vbat)
 {
-    _display->fillScreen(GxEPD_WHITE);
+    //_display->fillScreen(EPD_LIGHTGREY);
 
     // 1. Process Data
     DashboardData data = DataProcessor::process(pets, allPetData, range, _petColors);
@@ -65,7 +65,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
     {
         if (w.type == "ScatterPlot")
         {
-            ScatterPlot plot(_display, w.x, w.y, w.w, w.h);
+            ScatterPlot plot(_display, w.x, w.y, w.w, w.h, w.color);
             char titleBuf[64];
             // Format title with date range if requested, otherwise just use config title
             if (w.title.indexOf("%s") >= 0)
@@ -117,7 +117,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         }
         else if (w.type == "Histogram")
         {
-            Histogram hist(_display, w.x, w.y, w.w, w.h);
+            Histogram hist(_display, w.x, w.y, w.w, w.h, w.color);
             hist.setTitle(w.title.c_str());
             hist.setNormalization(true);
 
@@ -226,7 +226,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         {
             float val = 0;
 
-            uint16_t color = EPD_BLACK;
+            uint16_t color = w.color;
 
             if (w.dataSource == "battery")
             {
@@ -256,7 +256,7 @@ void PlotManager::renderDashboard(const std::vector<SL_Pet> &pets, PetDataMap &a
         }
         else if (w.type == "TextLabel")
         {
-            TextLabel label(_display, w.x, w.y, w.w, w.h, EPD_BLACK, EPD_WHITE);
+            TextLabel label(_display, w.x, w.y, w.w, w.h, w.color, EPD_WHITE);
             label.setFormat(w.title.length() > 0 ? w.title : "%m/%d %H:%M");
 
             if (w.dataSource == "datetime")
